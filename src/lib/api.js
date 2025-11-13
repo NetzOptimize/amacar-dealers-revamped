@@ -414,4 +414,129 @@ export const cancelInvitation = async (token) => {
   }
 };
 
+// Reverse Bidding API functions
+// Note: These endpoints are under /wp-json/reverse-bid/v1/ namespace
+// We need to construct the full path since baseURL is dealer-portal/v1
+const getReverseBidBaseURL = () => {
+  let baseURL = import.meta.env.VITE_BASE_URL || 'https://dealer.amacar.ai/wp-json/dealer-portal/v1';
+  
+  // Extract base URL without the /dealer-portal/v1 part
+  // Handle both cases: with and without trailing slash
+  if (baseURL.includes('/dealer-portal/v1')) {
+    baseURL = baseURL.replace('/dealer-portal/v1', '');
+  }
+  
+  // Ensure we have /wp-json in the path
+  if (!baseURL.includes('/wp-json')) {
+    // If baseURL is just a domain, add /wp-json
+    if (!baseURL.endsWith('/')) {
+      baseURL += '/wp-json';
+    } else {
+      baseURL += 'wp-json';
+    }
+  }
+  
+  return baseURL;
+};
+
+// Create a separate axios instance for reverse-bid endpoints
+const reverseBidApi = axios.create({
+  baseURL: getReverseBidBaseURL() + '/reverse-bid/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
+});
+
+// Add auth interceptor for reverse-bid API
+reverseBidApi.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Get dealer's reverse bidding sessions
+export const getDealerSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer sessions:', error);
+    throw error;
+  }
+};
+
+// Get dealer's bids for a specific session
+export const getDealerSessionBids = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/dealer-bids`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer session bids:', error);
+    throw error;
+  }
+};
+
+// Get eligible products for a session
+export const getEligibleProducts = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/eligible-products`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching eligible products:', error);
+    throw error;
+  }
+};
+
+// Submit a bid for a session
+export const submitReverseBid = async (sessionId, bidData) => {
+  try {
+    const response = await reverseBidApi.post(`/sessions/${sessionId}/bids`, bidData);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting bid:', error);
+    throw error;
+  }
+};
+
+// Revise an existing bid
+export const reviseBid = async (bidId, bidData) => {
+  try {
+    const response = await reverseBidApi.patch(`/bids/${bidId}`, bidData);
+    return response.data;
+  } catch (error) {
+    console.error('Error revising bid:', error);
+    throw error;
+  }
+};
+
+// Withdraw a bid
+export const withdrawReverseBid = async (bidId) => {
+  try {
+    const response = await reverseBidApi.post(`/bids/${bidId}/withdraw`);
+    return response.data;
+  } catch (error) {
+    console.error('Error withdrawing bid:', error);
+    throw error;
+  }
+};
+
+// Get dealer's bid history
+export const getDealerBidHistory = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/bid-history', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching bid history:', error);
+    throw error;
+  }
+};
+
 export default api;

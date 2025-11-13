@@ -85,7 +85,7 @@ export default function LoginModal({
   const isDisabled =
     status === "loading" ||
     emailValidation.isValidating ||
-    emailValidation.isDisposable === true ||
+    // emailValidation.isDisposable === true || // Commented out disposable email check
     emailValidation.isRegistered === false;
 
   // Debug email validation state changes
@@ -115,13 +115,16 @@ export default function LoginModal({
       if (!emailValidation.isValidating) {
         newErrors.email = "Please enter a valid email address";
       }
-    } else if (
-      emailValidation.isDisposable === true &&
-      !emailValidation.isValidating
-    ) {
-      console.log("🚫 [LoginModal] Email validation failed - disposable email");
-      newErrors.email = "Disposable email addresses are not allowed";
-    } else if (
+    } 
+    // Commented out disposable email check
+    // else if (
+    //   emailValidation.isDisposable === true &&
+    //   !emailValidation.isValidating
+    // ) {
+    //   console.log("🚫 [LoginModal] Email validation failed - disposable email");
+    //   newErrors.email = "Disposable email addresses are not allowed";
+    // } 
+    else if (
       emailValidation.isRegistered === false &&
       !emailValidation.isValidating
     ) {
@@ -550,9 +553,10 @@ export default function LoginModal({
                         <ReusableTooltip
                           content={
                             errors.email ||
-                            (emailValidation.isDisposable === true &&
-                              !emailValidation.isValidating &&
-                              "Disposable email addresses are not allowed") ||
+                            // Commented out disposable email check
+                            // (emailValidation.isDisposable === true &&
+                            //   !emailValidation.isValidating &&
+                            //   "Disposable email addresses are not allowed") ||
                             (emailValidation.isRegistered === false &&
                               !emailValidation.isValidating &&
                               "This email is not registered. Please check your email.") ||
@@ -572,10 +576,11 @@ export default function LoginModal({
                                   values.email
                                   ? "text-green-500"
                                   : // Only show red if explicitly invalid and not validating
-                                  (emailValidation.isDisposable === true ||
-                                    emailValidation.isRegistered === false) &&
+                                  // Commented out disposable email check
+                                  // (emailValidation.isDisposable === true ||
+                                  (emailValidation.isRegistered === false &&
                                     !emailValidation.isValidating &&
-                                    values.email
+                                    values.email)
                                     ? "text-red-500"
                                     : // Default neutral state
                                     "text-slate-400"
@@ -597,10 +602,11 @@ export default function LoginModal({
                                   values.email
                                   ? "border-green-300 bg-green-50 focus:shadow-[0_0_0_4px_rgba(34,197,94,0.08)]"
                                   : // Only show red if explicitly invalid and not validating
-                                  (emailValidation.isDisposable === true ||
-                                    emailValidation.isRegistered === false) &&
+                                  // Commented out disposable email check
+                                  // (emailValidation.isDisposable === true ||
+                                  (emailValidation.isRegistered === false &&
                                     !emailValidation.isValidating &&
-                                    values.email
+                                    values.email)
                                     ? "border-red-300 bg-red-50 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.08)]"
                                     : // Show red for form validation errors
                                     errors.email && !emailValidation.isValidating
@@ -619,8 +625,9 @@ export default function LoginModal({
                                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                                 )}
                               {!emailValidation.isValidating &&
-                                (emailValidation.isDisposable === true ||
-                                  emailValidation.isRegistered === false) && (
+                                // Commented out disposable email check
+                                // (emailValidation.isDisposable === true ||
+                                (emailValidation.isRegistered === false) && (
                                   <XCircle className="h-4 w-4 text-red-500" />
                                 )}
                             </div>

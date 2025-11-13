@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Dialog,
   DialogContent,
@@ -12,26 +13,43 @@ import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, Gift, Loader2 } from "lucide-react";
+import { DollarSign, Gift, Loader2, Package } from "lucide-react";
 import { toast } from "react-hot-toast";
+import {
+  fetchEligibleProducts,
+  selectEligibleProducts,
+  selectEligibleProductsLoading,
+} from "@/redux/slices/reverseBiddingSlice";
 
 const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
+  const dispatch = useDispatch();
+  const eligibleProducts = useSelector(selectEligibleProducts);
+  const productsLoading = useSelector(selectEligibleProductsLoading);
+  
+  const [productId, setProductId] = useState("");
   const [bidAmount, setBidAmount] = useState("");
   const [perks, setPerks] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && session?.id) {
       setBidAmount("");
       setPerks("");
+      setProductId("");
       setErrors({});
       setIsSubmitting(false);
+      // Fetch eligible products when dialog opens
+      dispatch(fetchEligibleProducts(session.id));
     }
-  }, [isOpen]);
+  }, [isOpen, session, dispatch]);
 
   const validateForm = () => {
     const newErrors = {};
+
+    if (!productId || productId === "") {
+      newErrors.productId = "Please select a product";
+    }
 
     if (!bidAmount || bidAmount.trim() === "") {
       newErrors.bidAmount = "Bid amount is required";
@@ -61,6 +79,7 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
     try {
       await onSubmit({
         sessionId: session?.id || session?.sessionId,
+        productId: parseInt(productId),
         bidAmount: parseFloat(bidAmount),
         perks: perks.trim() || undefined,
       });
@@ -102,6 +121,50 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Product Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="productId" className="text-sm font-semibold">
+              Select Product <span className="text-error">*</span>
+            </Label>
+            {productsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-neutral-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading products...
+              </div>
+            ) : (
+              <select
+                id="productId"
+                value={productId}
+                onChange={(e) => {
+                  setProductId(e.target.value);
+                  if (errors.productId) {
+                    setErrors({ ...errors, productId: "" });
+                  }
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${
+                  errors.productId ? "border-error" : "border-neutral-200"
+                }`}
+                disabled={isSubmitting || productsLoading}
+              >
+                <option value="">-- Select a product --</option>
+                {eligibleProducts.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name || `Product #${product.id}`}
+                    {product.price && ` - $${product.price.toLocaleString()}`}
+                  </option>
+                ))}
+              </select>
+            )}
+            {errors.productId && (
+              <p className="text-sm text-error">{errors.productId}</p>
+            )}
+            {eligibleProducts.length === 0 && !productsLoading && (
+              <p className="text-xs text-neutral-500">
+                No eligible products found for this session
+              </p>
+            )}
+          </div>
+
           {/* Bid Amount */}
           <div className="space-y-2">
             <Label htmlFor="bidAmount" className="text-sm font-semibold">
