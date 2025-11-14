@@ -7,49 +7,34 @@ import {
     getEligibleProducts,
 } from '@/lib/api';
 
-// Helper function to calculate time remaining
-const calculateTimeRemaining = (endAt) => {
-    if (!endAt) return 'N/A';
-    const end = new Date(endAt);
-    const now = new Date();
-    const diff = end - now;
-    
-    if (diff <= 0) return 'Expired';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}h ${minutes}m`;
-};
-
 // Transform API session data to UI format
+// Rely fully on API's time_remaining object - no browser time calculations
 const transformSession = (apiSession) => {
     const criteria = apiSession.criteria || {};
     const vehicleName = criteria.make && criteria.model 
         ? `${criteria.make} ${criteria.model}` 
         : 'Vehicle';
     
-    // Use time_remaining from API if available, otherwise calculate
+    // Rely fully on API's time_remaining object
+    const timeRemaining = apiSession.time_remaining || {};
+    const isExpired = timeRemaining.expired === true;
+    
+    // Use formatted time from API if available
     let timeLeft = 'N/A';
     let timeLeftSeconds = 0;
-    if (apiSession.time_remaining) {
-        if (apiSession.time_remaining.expired) {
-            timeLeft = 'Expired';
-            timeLeftSeconds = 0;
-        } else if (apiSession.time_remaining.formatted) {
-            timeLeft = apiSession.time_remaining.formatted;
-            timeLeftSeconds = apiSession.time_remaining.seconds || 0;
-        } else {
-            timeLeft = calculateTimeRemaining(apiSession.end_at);
-            timeLeftSeconds = apiSession.end_at 
-                ? Math.floor((new Date(apiSession.end_at) - new Date()) / 1000)
-                : 0;
-        }
-    } else {
-        timeLeft = calculateTimeRemaining(apiSession.end_at);
-        timeLeftSeconds = apiSession.end_at 
-            ? Math.floor((new Date(apiSession.end_at) - new Date()) / 1000)
-            : 0;
+    if (isExpired) {
+        timeLeft = 'Expired';
+        timeLeftSeconds = 0;
+    } else if (timeRemaining.formatted) {
+        timeLeft = timeRemaining.formatted;
+        timeLeftSeconds = timeRemaining.seconds || 0;
+    } else if (timeRemaining.seconds) {
+        // If we have seconds but no formatted, calculate display format
+        const hours = Math.floor(timeRemaining.seconds / 3600);
+        const minutes = Math.floor((timeRemaining.seconds % 3600) / 60);
+        const seconds = timeRemaining.seconds % 60;
+        timeLeft = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        timeLeftSeconds = timeRemaining.seconds;
     }
     
     return {
@@ -60,6 +45,8 @@ const transformSession = (apiSession) => {
         model: criteria.model || 'N/A',
         timeLeft: timeLeft,
         timeLeftSeconds: timeLeftSeconds,
+        timeRemainingFormatted: timeRemaining.formatted || null,
+        isExpired: isExpired,
         expiresAt: apiSession.end_at,
         status: apiSession.status === 'running' ? 'active' : (apiSession.status === 'closed' ? 'ended' : apiSession.status),
         condition: criteria.new_used === 'N' ? 'New' : 'Used',
@@ -67,6 +54,7 @@ const transformSession = (apiSession) => {
         createdAt: apiSession.created_at,
         criteria: criteria,
         leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
+        timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
     };
 };
 

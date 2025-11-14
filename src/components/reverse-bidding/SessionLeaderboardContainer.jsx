@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -27,6 +27,54 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/badge";
 import { useSelector } from "react-redux";
+
+// Component to track live countdown for session using API's time_remaining
+const LiveCountdown = ({ session }) => {
+  const [displayTime, setDisplayTime] = useState(() => {
+    if (session.isExpired) return "Expired";
+    if (session.timeRemainingFormatted) return session.timeRemainingFormatted;
+    return "00:00:00";
+  });
+  
+  useEffect(() => {
+    if (session.isExpired) {
+      setDisplayTime("Expired");
+      return;
+    }
+    
+    // Get initial values from API
+    const timeData = session.timeRemainingData;
+    if (!timeData || !timeData.seconds) {
+      return;
+    }
+    
+    // Store when we start counting
+    const startTime = Date.now();
+    const initialSeconds = timeData.seconds;
+    
+    // Update every second
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, initialSeconds - elapsed);
+      
+      if (remaining <= 0) {
+        setDisplayTime("Expired");
+        clearInterval(interval);
+        return;
+      }
+      
+      const h = Math.floor(remaining / 3600);
+      const m = Math.floor((remaining % 3600) / 60);
+      const s = remaining % 60;
+      
+      setDisplayTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [session.timeRemainingData, session.isExpired]);
+  
+  return <span>{displayTime}</span>;
+};
 
 const SessionLeaderboardContainer = ({
   leaderboard = [],
@@ -214,8 +262,8 @@ const SessionLeaderboardContainer = ({
             </Badge>
             <div className="flex items-center gap-2 text-sm text-orange-600">
               <Info className="w-4 h-4" />
-              <span className="font-medium">
-                Time Left: {session.timeLeft}
+              <span className="font-medium font-mono">
+                Time Left: <LiveCountdown session={session} />
               </span>
             </div>
           </div>
@@ -223,7 +271,7 @@ const SessionLeaderboardContainer = ({
       </div>
 
       {/* Action Bar - Show Bid Now if dealer hasn't placed a bid and session is active */}
-      {!currentDealerBid && isSessionActive && session.timeLeft !== 'Expired' && (
+      {!currentDealerBid && isSessionActive && !session.isExpired && (
         <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <div>

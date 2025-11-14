@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -27,6 +27,54 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+
+// Component to track live countdown for each session using API's time_remaining
+const LiveCountdown = ({ session }) => {
+  const [displayTime, setDisplayTime] = useState(() => {
+    if (session.isExpired) return "Expired";
+    if (session.timeRemainingFormatted) return session.timeRemainingFormatted;
+    return "00:00:00";
+  });
+  
+  useEffect(() => {
+    if (session.isExpired) {
+      setDisplayTime("Expired");
+      return;
+    }
+    
+    // Get initial values from API
+    const timeData = session.timeRemainingData;
+    if (!timeData || !timeData.seconds) {
+      return;
+    }
+    
+    // Store when we start counting
+    const startTime = Date.now();
+    const initialSeconds = timeData.seconds;
+    
+    // Update every second
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, initialSeconds - elapsed);
+      
+      if (remaining <= 0) {
+        setDisplayTime("Expired");
+        clearInterval(interval);
+        return;
+      }
+      
+      const h = Math.floor(remaining / 3600);
+      const m = Math.floor((remaining % 3600) / 60);
+      const s = remaining % 60;
+      
+      setDisplayTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [session.timeRemainingData, session.isExpired]);
+  
+  return <span>{displayTime}</span>;
+};
 
 const LiveSessionsContainer = ({ sessions = [] }) => {
   const navigate = useNavigate();
@@ -69,11 +117,20 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
         header: "Time Left",
         cell: (info) => {
           const session = info.row.original;
+          const isExpired = session.isExpired;
+          const totalSeconds = session.timeLeftSeconds || 0;
+          const isLowTime = totalSeconds < 3600 && totalSeconds > 0; // Less than 1 hour
+          const isCriticalTime = totalSeconds < 900 && totalSeconds > 0; // Less than 15 minutes
+          
           return (
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-orange-500" />
-              <span className="font-medium text-orange-600">
-                {session.timeLeft}
+              <Clock className={`w-4 h-4 ${
+                isExpired ? 'text-red-500' : isCriticalTime ? 'text-red-500' : isLowTime ? 'text-orange-500' : 'text-blue-500'
+              }`} />
+              <span className={`font-medium font-mono ${
+                isExpired ? 'text-red-600' : isCriticalTime ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-blue-600'
+              }`}>
+                <LiveCountdown session={session} />
               </span>
             </div>
           );
@@ -82,9 +139,12 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
       columnHelper.accessor("status", {
         header: "Status",
         cell: (info) => {
+          const session = info.row.original;
           const status = info.getValue();
-          const variant = status === "active" ? "default" : "secondary";
-          const statusText = status === "active" ? "Active" : "Ended";
+          // If expired, show expired badge regardless of status
+          const isExpired = session.isExpired;
+          const variant = isExpired ? "destructive" : (status === "active" ? "default" : "secondary");
+          const statusText = isExpired ? "Expired" : (status === "active" ? "Active" : "Ended");
           return (
             <Badge variant={variant} className="capitalize">
               {statusText}
@@ -97,7 +157,8 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
         header: "Actions",
         cell: (info) => {
           const session = info.row.original;
-          const isActive = session.status === "active";
+          // Disable if expired or not active
+          const isActive = session.status === "active" && !session.isExpired;
           
           return (
             <Button
