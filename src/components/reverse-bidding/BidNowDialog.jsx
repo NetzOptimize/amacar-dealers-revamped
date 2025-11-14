@@ -113,7 +113,7 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary-600" />
@@ -266,18 +266,21 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
           </div>
 
           {/* Session Info */}
-          <div className="bg-neutral-50 rounded-lg p-4 space-y-2">
-            <p className="text-sm font-semibold text-neutral-700">Session Details</p>
-            <div className="text-sm text-neutral-600 space-y-1">
-              <p>
-                <strong>Vehicle:</strong> {session.vehicle} {session.year}
-              </p>
-              <p>
-                <strong>Model:</strong> {session.model}
-              </p>
-              <p>
-                <strong>Time Left:</strong> {session.timeLeft}
-              </p>
+          <div className="bg-neutral-50 rounded-lg p-4">
+            <p className="text-sm font-semibold text-neutral-700 mb-3">Session Details</p>
+            <div className="grid grid-cols-3 gap-4 text-sm text-neutral-600">
+              <div>
+                <p className="font-medium text-neutral-500 mb-1">Vehicle</p>
+                <p className="text-neutral-700">{session.vehicle} {session.year}</p>
+              </div>
+              <div>
+                <p className="font-medium text-neutral-500 mb-1">Model</p>
+                <p className="text-neutral-700">{session.model}</p>
+              </div>
+              <div>
+                <p className="font-medium text-neutral-500 mb-1">Time Left</p>
+                <p className="text-neutral-700">{session.timeLeft}</p>
+              </div>
             </div>
           </div>
 
