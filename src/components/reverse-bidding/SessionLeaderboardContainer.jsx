@@ -7,6 +7,10 @@ import {
   ArrowUp,
   ArrowDown,
   Info,
+  MapPin,
+  Users,
+  Calendar,
+  Award,
 } from "lucide-react";
 import {
   useReactTable,
@@ -233,39 +237,151 @@ const SessionLeaderboardContainer = ({
     >
       {/* Session Metadata */}
       <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-              {session.vehicle}
-            </h2>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600">
-              <span>
-                <strong>Session ID:</strong> {session.sessionId}
-              </span>
-              <span>
-                <strong>Year:</strong> {session.year}
-              </span>
-              <span>
-                <strong>Model:</strong> {session.model}
-              </span>
-              <span>
-                <strong>Condition:</strong> {session.condition}
-              </span>
+        <div className="flex flex-col gap-6">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2">
+                {session.vehicle}
+              </h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600">
+                <span>
+                  <strong>Session ID:</strong> {session.sessionId}
+                </span>
+                <span>
+                  <strong>Year:</strong> {session.year}
+                </span>
+                <span>
+                  <strong>Make:</strong> {session.make}
+                </span>
+                <span>
+                  <strong>Model:</strong> {session.model}
+                </span>
+                <span>
+                  <strong>Condition:</strong> {session.condition}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge
+                variant={isSessionActive ? "default" : "secondary"}
+                className="text-sm"
+              >
+                {isSessionActive ? "Active" : "Ended"}
+              </Badge>
+              <div className="flex items-center gap-2 text-sm text-orange-600">
+                <Info className="w-4 h-4" />
+                <span className="font-medium font-mono">
+                  Time Left: <LiveCountdown session={session} />
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <Badge
-              variant={isSessionActive ? "default" : "secondary"}
-              className="text-sm"
-            >
-              {isSessionActive ? "Active" : "Ended"}
-            </Badge>
-            <div className="flex items-center gap-2 text-sm text-orange-600">
-              <Info className="w-4 h-4" />
-              <span className="font-medium font-mono">
-                Time Left: <LiveCountdown session={session} />
-              </span>
+
+          {/* Additional Session Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-neutral-200">
+            {/* Location Information */}
+            <div className="flex items-start gap-3">
+              <MapPin className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-neutral-500 mb-1">Location</span>
+                <span className="text-sm font-medium text-neutral-700">
+                  {session.city && session.state 
+                    ? `${session.city}, ${session.state}`
+                    : session.zipCode !== 'N/A'
+                    ? `ZIP: ${session.zipCode}`
+                    : 'Location not specified'}
+                </span>
+                {session.radius && (
+                  <span className="text-xs text-neutral-500 mt-1">
+                    Radius: {session.radius} miles
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Dealer Preference */}
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-neutral-500 mb-1">Dealer Preference</span>
+                <span className="text-sm font-medium text-neutral-700 capitalize">
+                  {session.dealerPreference === 'local' ? 'Local Dealers Only' : 'All Dealers'}
+                </span>
+              </div>
+            </div>
+
+            {/* Session Dates */}
+            <div className="flex items-start gap-3">
+              <Calendar className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-neutral-500 mb-1">Session Duration</span>
+                {session.startAt && (
+                  <span className="text-sm font-medium text-neutral-700">
+                    Started: {new Date(session.startAt).toLocaleString()}
+                  </span>
+                )}
+                {session.expiresAt && (
+                  <span className="text-xs text-neutral-500 mt-1">
+                    Ends: {new Date(session.expiresAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Base Price */}
+            {session.criteria?.price && (
+              <div className="flex items-start gap-3">
+                <TrendingDown className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-neutral-500 mb-1">Base Price</span>
+                  <span className="text-sm font-medium text-neutral-700">
+                    ${parseFloat(session.criteria.price).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Total Bids */}
+            <div className="flex items-start gap-3">
+              <Users className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-neutral-500 mb-1">Total Bids</span>
+                <span className="text-sm font-medium text-neutral-700">
+                  {session.totalBids || 0} {session.totalBids === 1 ? 'bid' : 'bids'}
+                </span>
+              </div>
+            </div>
+
+            {/* Winning Bid */}
+            {session.winningBidId && (
+              <div className="flex items-start gap-3">
+                <Award className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-neutral-500 mb-1">Winning Bid</span>
+                  <span className="text-sm font-medium text-green-600">
+                    Bid ID: {session.winningBidId}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Alternative Makes/Models */}
+            {session.alternativeMakesModels && session.alternativeMakesModels.length > 0 && (
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-neutral-500 mb-1">Alternative Options</span>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {session.alternativeMakesModels.map((alt, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {alt.make} {alt.model}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

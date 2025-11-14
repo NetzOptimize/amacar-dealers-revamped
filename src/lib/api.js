@@ -484,6 +484,17 @@ export const getDealerSessionBids = async (sessionId) => {
   }
 };
 
+// Get detailed session information
+export const getDealerSessionDetails = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/details`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer session details:', error);
+    throw error;
+  }
+};
+
 // Get eligible products for a session
 export const getEligibleProducts = async (sessionId) => {
   try {

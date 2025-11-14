@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
     getDealerSessions,
     getDealerSessionBids,
+    getDealerSessionDetails,
     submitReverseBid,
     withdrawReverseBid,
     getEligibleProducts,
@@ -43,16 +44,29 @@ const transformSession = (apiSession) => {
         vehicle: vehicleName,
         year: criteria.year || 'N/A',
         model: criteria.model || 'N/A',
+        make: criteria.make || 'N/A',
         timeLeft: timeLeft,
         timeLeftSeconds: timeLeftSeconds,
         timeRemainingFormatted: timeRemaining.formatted || null,
         isExpired: isExpired,
         expiresAt: apiSession.end_at,
+        startAt: apiSession.start_at,
         status: apiSession.status === 'running' ? 'active' : (apiSession.status === 'closed' ? 'ended' : apiSession.status),
         condition: criteria.new_used === 'N' ? 'New' : 'Used',
         sessionDuration: apiSession.duration_hours ? `${apiSession.duration_hours} hours` : '24 hours',
         createdAt: apiSession.created_at,
+        updatedAt: apiSession.updated_at,
         criteria: criteria,
+        zipCode: apiSession.zip_code || criteria.zip_code || 'N/A',
+        city: apiSession.city || null,
+        state: apiSession.state || null,
+        radius: criteria.radius || null,
+        dealerPreference: apiSession.dealer_preference || 'all',
+        alternativeMakesModels: apiSession.alternative_makes_models || [],
+        primaryVehicleId: apiSession.primary_vehicle_id,
+        alternativeVehicleIds: apiSession.alternative_vehicle_ids || [],
+        totalBids: parseInt(apiSession.total_bids) || 0,
+        winningBidId: apiSession.winning_bid_id || null,
         leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
         timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
     };
@@ -158,33 +172,25 @@ export const fetchSessionLeaderboard = createAsyncThunk(
             const state = getState();
             const currentDealerId = state.user?.user?.ID || state.user?.user?.id;
             
-            // Fetch dealer's bids for this session to get leaderboard
-            const bidsResponse = await getDealerSessionBids(sessionId);
+            // Fetch session details using the dedicated endpoint
+            const sessionDetailsResponse = await getDealerSessionDetails(sessionId);
             
-            if (!bidsResponse.success) {
-                return rejectWithValue(bidsResponse.message || 'Failed to fetch session leaderboard');
+            if (!sessionDetailsResponse.success) {
+                return rejectWithValue(sessionDetailsResponse.message || 'Failed to fetch session details');
             }
             
-            // Also fetch sessions to get session details (which includes leaderboard)
-            const sessionsResponse = await getDealerSessions();
-            // The sessions array is nested at response.data.data
-            const sessionsArray = sessionsResponse.data?.data || sessionsResponse.data || [];
-            const sessionData = Array.isArray(sessionsArray) 
-                ? sessionsArray.find(s => 
-                    s.id === parseInt(sessionId) || 
-                    s.id.toString() === sessionId.toString()
-                )
-                : null;
+            // The session data is in response.data
+            const sessionData = sessionDetailsResponse.data || sessionDetailsResponse;
             
             // Transform session data
             const session = sessionData ? transformSession(sessionData) : null;
             
+            if (!session) {
+                return rejectWithValue('Session not found');
+            }
+            
             // Get leaderboard from session data (it's already included in the API response)
-            // Fallback to bids response if leaderboard not in session
-            const leaderboardData = sessionData?.leaderboard || 
-                                   bidsResponse.data?.bids || 
-                                   bidsResponse.data?.data?.bids || 
-                                   [];
+            const leaderboardData = sessionData.leaderboard || [];
             const leaderboard = transformLeaderboard(
                 Array.isArray(leaderboardData) ? leaderboardData : [], 
                 currentDealerId
@@ -194,7 +200,7 @@ export const fetchSessionLeaderboard = createAsyncThunk(
                 success: true,
                 session: session,
                 leaderboard: leaderboard,
-                totalBids: leaderboard.length,
+                totalBids: session.totalBids || leaderboard.length,
             };
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch session leaderboard';
