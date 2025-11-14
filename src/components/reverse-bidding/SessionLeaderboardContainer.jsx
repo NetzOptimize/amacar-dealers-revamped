@@ -104,10 +104,16 @@ const SessionLeaderboardContainer = ({
         header: "Perks",
         cell: (info) => {
           const perks = info.getValue();
+          // If perks is already formatted as a string, display it
+          // Otherwise format it nicely
+          const displayPerks = typeof perks === 'string' 
+            ? perks 
+            : (perks ? JSON.stringify(perks) : 'No perks');
+          
           return (
-            <span className="text-sm text-neutral-600">
-              {perks || "No perks"}
-            </span>
+            <div className="text-sm text-neutral-600 max-w-md">
+              {displayPerks || "No perks"}
+            </div>
           );
         },
       }),
@@ -216,8 +222,8 @@ const SessionLeaderboardContainer = ({
         </div>
       </div>
 
-      {/* Action Bar - Show Bid Now if dealer hasn't placed a bid */}
-      {!currentDealerBid && isSessionActive && (
+      {/* Action Bar - Show Bid Now if dealer hasn't placed a bid and session is active */}
+      {!currentDealerBid && isSessionActive && session.timeLeft !== 'Expired' && (
         <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <div>

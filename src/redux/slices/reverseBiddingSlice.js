@@ -29,22 +29,44 @@ const transformSession = (apiSession) => {
         ? `${criteria.make} ${criteria.model}` 
         : 'Vehicle';
     
+    // Use time_remaining from API if available, otherwise calculate
+    let timeLeft = 'N/A';
+    let timeLeftSeconds = 0;
+    if (apiSession.time_remaining) {
+        if (apiSession.time_remaining.expired) {
+            timeLeft = 'Expired';
+            timeLeftSeconds = 0;
+        } else if (apiSession.time_remaining.formatted) {
+            timeLeft = apiSession.time_remaining.formatted;
+            timeLeftSeconds = apiSession.time_remaining.seconds || 0;
+        } else {
+            timeLeft = calculateTimeRemaining(apiSession.end_at);
+            timeLeftSeconds = apiSession.end_at 
+                ? Math.floor((new Date(apiSession.end_at) - new Date()) / 1000)
+                : 0;
+        }
+    } else {
+        timeLeft = calculateTimeRemaining(apiSession.end_at);
+        timeLeftSeconds = apiSession.end_at 
+            ? Math.floor((new Date(apiSession.end_at) - new Date()) / 1000)
+            : 0;
+    }
+    
     return {
         id: apiSession.id,
         sessionId: `RB-${String(apiSession.id).padStart(6, '0')}`,
         vehicle: vehicleName,
         year: criteria.year || 'N/A',
         model: criteria.model || 'N/A',
-        timeLeft: calculateTimeRemaining(apiSession.end_at),
-        timeLeftSeconds: apiSession.end_at 
-            ? Math.floor((new Date(apiSession.end_at) - new Date()) / 1000)
-            : 0,
+        timeLeft: timeLeft,
+        timeLeftSeconds: timeLeftSeconds,
         expiresAt: apiSession.end_at,
         status: apiSession.status === 'running' ? 'active' : (apiSession.status === 'closed' ? 'ended' : apiSession.status),
         condition: criteria.new_used === 'N' ? 'New' : 'Used',
         sessionDuration: apiSession.duration_hours ? `${apiSession.duration_hours} hours` : '24 hours',
         createdAt: apiSession.created_at,
         criteria: criteria,
+        leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
     };
 };
 
@@ -56,12 +78,35 @@ const transformLeaderboard = (leaderboardData, currentDealerId) => {
     
     return leaderboardData
         .map((bid, index) => {
-            const perks = bid.perks 
-                ? (typeof bid.perks === 'string' ? bid.perks : JSON.stringify(bid.perks))
-                : 'No perks';
+            // Format perks nicely - handle both object and string formats
+            let perks = 'No perks';
+            if (bid.perks) {
+                if (typeof bid.perks === 'string') {
+                    try {
+                        // Try to parse if it's a JSON string
+                        const parsed = JSON.parse(bid.perks);
+                        if (typeof parsed === 'object') {
+                            perks = Object.entries(parsed)
+                                .map(([key, value]) => `${key}: ${value}`)
+                                .join(', ');
+                        } else {
+                            perks = bid.perks;
+                        }
+                    } catch {
+                        // If parsing fails, use as-is
+                        perks = bid.perks;
+                    }
+                } else if (typeof bid.perks === 'object') {
+                    // Format object as readable text
+                    perks = Object.entries(bid.perks)
+                        .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+                        .join(', ');
+                }
+            }
             
             const isCurrentDealer = bid.dealer_user_id === currentDealerId || 
-                                   bid.dealer_id === currentDealerId;
+                                   bid.dealer_id === currentDealerId ||
+                                   String(bid.dealer_id) === String(currentDealerId);
             
             return {
                 id: bid.id || bid.bid_id,
@@ -132,7 +177,7 @@ export const fetchSessionLeaderboard = createAsyncThunk(
                 return rejectWithValue(bidsResponse.message || 'Failed to fetch session leaderboard');
             }
             
-            // Also fetch sessions to get session details
+            // Also fetch sessions to get session details (which includes leaderboard)
             const sessionsResponse = await getDealerSessions();
             // The sessions array is nested at response.data.data
             const sessionsArray = sessionsResponse.data?.data || sessionsResponse.data || [];
@@ -146,10 +191,16 @@ export const fetchSessionLeaderboard = createAsyncThunk(
             // Transform session data
             const session = sessionData ? transformSession(sessionData) : null;
             
-            // Get leaderboard from bids response
-            // The bids array might be nested at response.data.bids or response.data.data.bids
-            const bidsArray = bidsResponse.data?.bids || bidsResponse.data?.data?.bids || bidsResponse.data || [];
-            const leaderboard = transformLeaderboard(Array.isArray(bidsArray) ? bidsArray : [], currentDealerId);
+            // Get leaderboard from session data (it's already included in the API response)
+            // Fallback to bids response if leaderboard not in session
+            const leaderboardData = sessionData?.leaderboard || 
+                                   bidsResponse.data?.bids || 
+                                   bidsResponse.data?.data?.bids || 
+                                   [];
+            const leaderboard = transformLeaderboard(
+                Array.isArray(leaderboardData) ? leaderboardData : [], 
+                currentDealerId
+            );
             
             return {
                 success: true,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, Gift, Loader2, Package } from "lucide-react";
+import { DollarSign, Gift, Loader2, Package, Car, ChevronDown } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   fetchEligibleProducts,
@@ -31,6 +31,11 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
   const [perks, setPerks] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get selected product details
+  const selectedProduct = useMemo(() => {
+    return eligibleProducts.find(p => String(p.id) === String(productId));
+  }, [productId, eligibleProducts]);
 
   useEffect(() => {
     if (isOpen && session?.id) {
@@ -124,44 +129,92 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
           {/* Product Selection */}
           <div className="space-y-2">
             <Label htmlFor="productId" className="text-sm font-semibold">
-              Select Product <span className="text-error">*</span>
+              Select Vehicle <span className="text-error">*</span>
             </Label>
             {productsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <div className="flex items-center gap-2 text-sm text-neutral-500 p-4 border border-neutral-200 rounded-lg">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Loading products...
+                Loading vehicles...
               </div>
             ) : (
-              <select
-                id="productId"
-                value={productId}
-                onChange={(e) => {
-                  setProductId(e.target.value);
-                  if (errors.productId) {
-                    setErrors({ ...errors, productId: "" });
-                  }
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${
-                  errors.productId ? "border-error" : "border-neutral-200"
-                }`}
-                disabled={isSubmitting || productsLoading}
-              >
-                <option value="">-- Select a product --</option>
-                {eligibleProducts.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name || `Product #${product.id}`}
-                    {product.price && ` - $${product.price.toLocaleString()}`}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="productId"
+                  value={productId}
+                  onChange={(e) => {
+                    setProductId(e.target.value);
+                    if (errors.productId) {
+                      setErrors({ ...errors, productId: "" });
+                    }
+                  }}
+                  className={`w-full px-4 py-3 pr-10 border rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer ${
+                    errors.productId 
+                      ? "border-red-300 bg-red-50" 
+                      : "border-neutral-200 hover:border-neutral-300"
+                  }`}
+                  disabled={isSubmitting || productsLoading}
+                >
+                  <option value="">-- Select a vehicle --</option>
+                  {eligibleProducts.map((product) => {
+                    const displayName = product.title || `${product.year} ${product.make} ${product.model}`;
+                    const condition = product.new_used === 'N' ? 'New' : 'Used';
+                    const price = product.price ? parseFloat(product.price).toLocaleString() : 'N/A';
+                    return (
+                      <option key={product.id} value={product.id}>
+                        {displayName} • {condition} • ${price}
+                      </option>
+                    );
+                  })}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              </div>
             )}
             {errors.productId && (
-              <p className="text-sm text-error">{errors.productId}</p>
+              <p className="text-sm text-red-600">{errors.productId}</p>
             )}
             {eligibleProducts.length === 0 && !productsLoading && (
-              <p className="text-xs text-neutral-500">
-                No eligible products found for this session
-              </p>
+              <div className="p-4 border border-neutral-200 rounded-lg bg-neutral-50">
+                <p className="text-sm text-neutral-500 text-center">
+                  No eligible vehicles found for this session
+                </p>
+              </div>
+            )}
+            
+            {/* Selected Product Preview */}
+            {selectedProduct && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 p-4 bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200 rounded-xl"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+                    <Car className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-neutral-900 text-sm mb-1">
+                      {selectedProduct.title || `${selectedProduct.year} ${selectedProduct.make} ${selectedProduct.model}`}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+                      <span>{selectedProduct.year}</span>
+                      <span>•</span>
+                      <span>{selectedProduct.make} {selectedProduct.model}</span>
+                      <span>•</span>
+                      <span className="font-medium text-primary-700">
+                        ${parseFloat(selectedProduct.price || 0).toLocaleString()}
+                      </span>
+                      <span>•</span>
+                      <span>{selectedProduct.new_used === 'N' ? 'New' : 'Used'}</span>
+                      {selectedProduct.city && selectedProduct.state && (
+                        <>
+                          <span>•</span>
+                          <span>{selectedProduct.city}, {selectedProduct.state}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </div>
 
