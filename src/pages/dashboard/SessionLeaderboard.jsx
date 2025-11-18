@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ import SessionDetailsModal from "@/components/reverse-bidding/SessionDetailsModa
 import { ArrowLeft, Loader2, Info } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
+import Cookies from "js-cookie";
 
 const SessionLeaderboard = () => {
   const dispatch = useDispatch();
@@ -38,12 +39,182 @@ const SessionLeaderboard = () => {
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedBid, setSelectedBid] = useState(null);
+  const eventSourceRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
+  // Get base URL for reverse bid API
+  const getReverseBidBaseURL = () => {
+    let baseURL = import.meta.env.VITE_BASE_URL || 'https://dealer.amacar.ai/wp-json/dealer-portal/v1';
+    
+    // Remove /dealer-portal/v1 if present
+    if (baseURL.includes('/dealer-portal/v1')) {
+      baseURL = baseURL.replace('/dealer-portal/v1', '');
+    }
+    
+    // Ensure we have the base URL without /wp-json
+    if (baseURL.includes('/wp-json')) {
+      baseURL = baseURL.replace('/wp-json', '');
+    }
+    
+    if (!baseURL.includes('/wp-json')) {
+      if (!baseURL.endsWith('/')) {
+        baseURL += '/wp-json';
+      } else {
+        baseURL += 'wp-json';
+      }
+    }
+    
+    return baseURL;
+  };
+
+  // Initial fetch of session leaderboard
   useEffect(() => {
     if (sessionId) {
       dispatch(fetchSessionLeaderboard(sessionId));
     }
   }, [dispatch, sessionId]);
+
+  // Set up SSE connection for real-time leaderboard updates
+  useEffect(() => {
+    if (!sessionId || !session || session.status !== 'active') return;
+
+    const token = Cookies.get('authToken');
+    if (!token) {
+      console.error('No auth token found for SSE connection');
+      return;
+    }
+
+    const baseURL = getReverseBidBaseURL();
+    // Connect to dealer SSE endpoint (not session-specific SSE)
+    const sseUrl = `${baseURL}/reverse-bid/v1/sse/dealer?token=${encodeURIComponent(token)}`;
+    
+    // Create EventSource connection
+    const eventSource = new EventSource(sseUrl);
+    eventSourceRef.current = eventSource;
+    let reconnectTimeout = null;
+    let reconnectAttempts = 0;
+    let fallbackInterval = null;
+    let isConnected = false;
+
+    // Handle connection opened
+    eventSource.onopen = () => {
+      console.log('Dealer SSE connection opened for session leaderboard');
+      reconnectAttempts = 0;
+      reconnectAttemptsRef.current = 0;
+      isConnected = true;
+    };
+
+    // Handle connected event
+    eventSource.addEventListener('connected', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Dealer SSE connected for leaderboard:', data);
+        isConnected = true;
+      } catch (err) {
+        console.error('Error parsing connected event:', err);
+      }
+    });
+
+    // Handle bid_received event - refresh leaderboard if it's for this session
+    eventSource.addEventListener('bid_received', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          // Refresh leaderboard for this session
+          dispatch(fetchSessionLeaderboard(sessionId));
+        }
+      } catch (err) {
+        console.error('Error parsing bid_received event:', err);
+      }
+    });
+
+    // Handle bid_revised event
+    eventSource.addEventListener('bid_revised', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          // Refresh leaderboard for this session
+          dispatch(fetchSessionLeaderboard(sessionId));
+        }
+      } catch (err) {
+        console.error('Error parsing bid_revised event:', err);
+      }
+    });
+
+    // Handle session_closed event
+    eventSource.addEventListener('session_closed', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          // Refresh to get updated session status
+          dispatch(fetchSessionLeaderboard(sessionId));
+        }
+      } catch (err) {
+        console.error('Error parsing session_closed event:', err);
+      }
+    });
+
+    // Handle heartbeat
+    eventSource.addEventListener('heartbeat', (event) => {
+      // Connection is alive, no action needed
+    });
+
+    // Handle disconnected event
+    eventSource.addEventListener('disconnected', (event) => {
+      console.log('Dealer SSE disconnected for leaderboard');
+      isConnected = false;
+    });
+
+    // Handle connection errors
+    eventSource.onerror = (error) => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.error('Dealer SSE connection closed for leaderboard:', error);
+        isConnected = false;
+        
+        // Close the connection
+        eventSource.close();
+        
+        // Attempt to reconnect if we haven't exceeded max attempts
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          reconnectAttemptsRef.current = reconnectAttempts;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff, max 10s
+          
+          reconnectTimeout = setTimeout(() => {
+            console.log(`Attempting to reconnect dealer SSE for leaderboard (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
+            // Refresh leaderboard to trigger reconnection
+            dispatch(fetchSessionLeaderboard(sessionId));
+          }, delay);
+          reconnectTimeoutRef.current = reconnectTimeout;
+        } else {
+          console.error('Max dealer SSE reconnection attempts reached for leaderboard. Falling back to polling.');
+          // Fallback to polling if SSE fails completely
+          fallbackInterval = setInterval(() => {
+            dispatch(fetchSessionLeaderboard(sessionId));
+          }, 10000); // Poll every 10 seconds
+        }
+      }
+    };
+
+    // Cleanup function
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        console.log('Dealer SSE connection closed for leaderboard');
+      }
+    };
+  }, [dispatch, sessionId, session?.status]);
 
   useEffect(() => {
     if (bidOperationSuccess) {

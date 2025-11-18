@@ -360,6 +360,42 @@ const reverseBiddingSlice = createSlice({
             state.leaderboardError = null;
             state.bidOperationError = null;
         },
+        // Update sessions from SSE events
+        updateSessionsFromSSE: (state, action) => {
+            const { sessions } = action.payload;
+            if (Array.isArray(sessions)) {
+                // Transform and update sessions
+                state.sessions = sessions.map(transformSession);
+            }
+        },
+        // Add new session from SSE
+        addSessionFromSSE: (state, action) => {
+            const session = transformSession(action.payload);
+            // Check if session already exists
+            const existingIndex = state.sessions.findIndex(s => s.id === session.id);
+            if (existingIndex >= 0) {
+                // Update existing session
+                state.sessions[existingIndex] = session;
+            } else {
+                // Add new session (only if it's running/pending)
+                if (session.status === 'active' || session.status === 'running' || session.status === 'pending') {
+                    state.sessions.push(session);
+                }
+            }
+        },
+        // Remove session from SSE (when closed)
+        removeSessionFromSSE: (state, action) => {
+            const sessionId = action.payload;
+            state.sessions = state.sessions.filter(s => s.id !== sessionId);
+        },
+        // Update single session from SSE
+        updateSessionFromSSE: (state, action) => {
+            const updatedSession = transformSession(action.payload);
+            const index = state.sessions.findIndex(s => s.id === updatedSession.id);
+            if (index >= 0) {
+                state.sessions[index] = updatedSession;
+            }
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -473,6 +509,10 @@ export const {
     clearBidOperationStates,
     setCurrentSessionId,
     resetReverseBidding,
+    updateSessionsFromSSE,
+    addSessionFromSSE,
+    removeSessionFromSSE,
+    updateSessionFromSSE,
 } = reverseBiddingSlice.actions;
 
 // Selectors
