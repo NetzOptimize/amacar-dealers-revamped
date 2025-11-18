@@ -45,6 +45,7 @@ const transformSession = (apiSession) => {
         year: criteria.year || 'N/A',
         model: criteria.model || 'N/A',
         make: criteria.make || 'N/A',
+        price: criteria.price ? parseFloat(criteria.price) : null,
         timeLeft: timeLeft,
         timeLeftSeconds: timeLeftSeconds,
         timeRemainingFormatted: timeRemaining.formatted || null,
@@ -64,9 +65,12 @@ const transformSession = (apiSession) => {
         dealerPreference: apiSession.dealer_preference || 'all',
         alternativeMakesModels: apiSession.alternative_makes_models || [],
         primaryVehicleId: apiSession.primary_vehicle_id,
+        primaryVehicleImage: apiSession.primary_vehicle_image || null,
         alternativeVehicleIds: apiSession.alternative_vehicle_ids || [],
         totalBids: parseInt(apiSession.total_bids) || 0,
+        dealerBidCount: parseInt(apiSession.dealer_bid_count) || 0,
         winningBidId: apiSession.winning_bid_id || null,
+        customerContact: apiSession.customer_contact || null,
         leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
         timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
     };

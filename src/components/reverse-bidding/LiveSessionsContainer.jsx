@@ -7,6 +7,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  DollarSign,
+  Users,
+  MapPin,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   useReactTable,
@@ -85,6 +89,38 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: "image",
+        header: "Image",
+        cell: (info) => {
+          const session = info.row.original;
+          
+          return (
+            <div className="w-16 h-16 rounded-lg overflow-hidden bg-neutral-200 flex items-center justify-center">
+              {session.primaryVehicleImage ? (
+                <img
+                  src={session.primaryVehicleImage}
+                  alt={session.vehicle}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '';
+                    e.target.style.display = 'none';
+                    const fallback = e.target.nextElementSibling;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className="w-full h-full flex items-center justify-center"
+                style={{ display: session.primaryVehicleImage ? 'none' : 'flex' }}
+              >
+                <ImageIcon className="w-6 h-6 text-neutral-400" />
+              </div>
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor("vehicle", {
         header: "Vehicle",
         cell: (info) => {
@@ -101,17 +137,25 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
           );
         },
       }),
-      columnHelper.accessor("year", {
-        header: "Year",
-        cell: (info) => (
-          <span className="text-neutral-700">{info.getValue()}</span>
-        ),
-      }),
-      columnHelper.accessor("model", {
-        header: "Model",
-        cell: (info) => (
-          <span className="text-neutral-700">{info.getValue()}</span>
-        ),
+      columnHelper.accessor("price", {
+        header: "Price",
+        cell: (info) => {
+          const session = info.row.original;
+          const price = info.getValue();
+          return (
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-green-600" />
+              <span className="font-semibold text-neutral-900">
+                {price ? new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(price) : 'N/A'}
+              </span>
+            </div>
+          );
+        },
       }),
       columnHelper.accessor("timeLeft", {
         header: "Time Left",
@@ -131,6 +175,55 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
                 isExpired ? 'text-red-600' : isCriticalTime ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-blue-600'
               }`}>
                 <LiveCountdown session={session} />
+              </span>
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor("totalBids", {
+        header: "Total Bids",
+        cell: (info) => {
+          const session = info.row.original;
+          const totalBids = info.getValue() || 0;
+          return (
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-blue-500" />
+              <span className="font-medium text-neutral-700">{totalBids}</span>
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor("dealerBidCount", {
+        header: "My Bids",
+        cell: (info) => {
+          const session = info.row.original;
+          const dealerBidCount = info.getValue() || 0;
+          return (
+            <div className="flex items-center gap-1.5">
+              <TrendingDown className={`w-4 h-4 ${dealerBidCount > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
+              <span className={`font-medium ${dealerBidCount > 0 ? 'text-orange-600' : 'text-neutral-500'}`}>
+                {dealerBidCount}
+              </span>
+            </div>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: "location",
+        header: "Location",
+        cell: (info) => {
+          const session = info.row.original;
+          const locationParts = [];
+          if (session.city) locationParts.push(session.city);
+          if (session.state) locationParts.push(session.state);
+          if (locationParts.length === 0 && session.zipCode && session.zipCode !== 'N/A') {
+            locationParts.push(session.zipCode);
+          }
+          return (
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-neutral-400" />
+              <span className="text-sm text-neutral-700">
+                {locationParts.length > 0 ? locationParts.join(', ') : session.zipCode || 'N/A'}
               </span>
             </div>
           );
