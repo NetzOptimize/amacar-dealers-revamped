@@ -78,17 +78,37 @@ const SessionLeaderboard = () => {
 
   // Set up SSE connection for real-time leaderboard updates
   useEffect(() => {
-    if (!sessionId || !session || session.status !== 'active') return;
-
-    const token = Cookies.get('authToken');
-    if (!token) {
-      console.error('No auth token found for SSE connection');
+    if (!sessionId) {
+      console.log('SessionLeaderboard SSE: No sessionId, skipping SSE connection');
       return;
     }
 
+    const token = Cookies.get('authToken');
+    if (!token) {
+      console.error('SessionLeaderboard SSE: No auth token found for SSE connection');
+      return;
+    }
+
+    // Only skip SSE if session is explicitly closed/ended
+    // Allow SSE for active, running, or pending sessions (or if session not loaded yet)
+    if (session && (session.status === 'closed' || session.status === 'ended')) {
+      console.log('SessionLeaderboard SSE: Session is closed, skipping SSE connection');
+      return;
+    }
+
+    // Prevent multiple connections
+    if (eventSourceRef.current && eventSourceRef.current.readyState !== EventSource.CLOSED) {
+      console.log('SessionLeaderboard SSE: Connection already exists, skipping');
+      return;
+    }
+
+    console.log('SessionLeaderboard SSE: Setting up SSE connection for session', sessionId, 'Status:', session?.status);
+
     const baseURL = getReverseBidBaseURL();
-    // Connect to dealer SSE endpoint (not session-specific SSE)
-    const sseUrl = `${baseURL}/reverse-bid/v1/sse/dealer?token=${encodeURIComponent(token)}`;
+    // Connect to session-specific SSE endpoint (sends leaderboard_updated events)
+    const sseUrl = `${baseURL}/reverse-bid/v1/sse/session/${sessionId}?token=${encodeURIComponent(token)}`;
+    
+    console.log('SessionLeaderboard SSE: Connecting to', sseUrl);
     
     // Create EventSource connection
     const eventSource = new EventSource(sseUrl);
@@ -100,7 +120,7 @@ const SessionLeaderboard = () => {
 
     // Handle connection opened
     eventSource.onopen = () => {
-      console.log('Dealer SSE connection opened for session leaderboard');
+      console.log('SessionLeaderboard SSE: Connection opened');
       reconnectAttempts = 0;
       reconnectAttemptsRef.current = 0;
       isConnected = true;
@@ -110,23 +130,41 @@ const SessionLeaderboard = () => {
     eventSource.addEventListener('connected', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Dealer SSE connected for leaderboard:', data);
+        console.log('SessionLeaderboard SSE: Connected event received', data);
         isConnected = true;
       } catch (err) {
-        console.error('Error parsing connected event:', err);
+        console.error('SessionLeaderboard SSE: Error parsing connected event:', err);
       }
     });
 
-    // Handle bid_received event - refresh leaderboard if it's for this session
+    // Handle leaderboard_updated event - update leaderboard directly from SSE
+    eventSource.addEventListener('leaderboard_updated', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('SessionLeaderboard SSE: leaderboard_updated event', data);
+        if (data.session_id && parseInt(data.session_id) === parseInt(sessionId) && data.leaderboard) {
+          console.log('SessionLeaderboard SSE: Updating leaderboard from SSE for session', sessionId);
+          // Update leaderboard directly from SSE data
+          // We need to refresh the full session to get updated session data as well
+          dispatch(fetchSessionLeaderboard(sessionId));
+        }
+      } catch (err) {
+        console.error('SessionLeaderboard SSE: Error parsing leaderboard_updated event:', err);
+      }
+    });
+
+    // Handle bid_received event - refresh leaderboard
     eventSource.addEventListener('bid_received', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('SessionLeaderboard SSE: bid_received event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          console.log('SessionLeaderboard SSE: Refreshing leaderboard for session', sessionId);
           // Refresh leaderboard for this session
           dispatch(fetchSessionLeaderboard(sessionId));
         }
       } catch (err) {
-        console.error('Error parsing bid_received event:', err);
+        console.error('SessionLeaderboard SSE: Error parsing bid_received event:', err);
       }
     });
 
@@ -134,67 +172,85 @@ const SessionLeaderboard = () => {
     eventSource.addEventListener('bid_revised', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('SessionLeaderboard SSE: bid_revised event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          console.log('SessionLeaderboard SSE: Refreshing leaderboard for session', sessionId);
           // Refresh leaderboard for this session
           dispatch(fetchSessionLeaderboard(sessionId));
         }
       } catch (err) {
-        console.error('Error parsing bid_revised event:', err);
+        console.error('SessionLeaderboard SSE: Error parsing bid_revised event:', err);
       }
     });
 
-    // Handle session_closed event
-    eventSource.addEventListener('session_closed', (event) => {
+    // Handle session_ended event
+    eventSource.addEventListener('session_ended', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('SessionLeaderboard SSE: session_ended event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
+          console.log('SessionLeaderboard SSE: Refreshing session status for session', sessionId);
           // Refresh to get updated session status
           dispatch(fetchSessionLeaderboard(sessionId));
         }
       } catch (err) {
-        console.error('Error parsing session_closed event:', err);
+        console.error('SessionLeaderboard SSE: Error parsing session_ended event:', err);
       }
     });
 
     // Handle heartbeat
     eventSource.addEventListener('heartbeat', (event) => {
       // Connection is alive, no action needed
+      console.log('SessionLeaderboard SSE: Heartbeat received');
     });
 
     // Handle disconnected event
     eventSource.addEventListener('disconnected', (event) => {
-      console.log('Dealer SSE disconnected for leaderboard');
+      console.log('SessionLeaderboard SSE: Disconnected event received');
       isConnected = false;
     });
 
     // Handle connection errors
     eventSource.onerror = (error) => {
+      console.log('SessionLeaderboard SSE: Error event, readyState:', eventSource.readyState);
+      
+      // Don't try to reconnect if we got a 403 (permission denied) - just log and stop
       if (eventSource.readyState === EventSource.CLOSED) {
-        console.error('Dealer SSE connection closed for leaderboard:', error);
+        // Check if it's a 403 error by checking the last response
+        // If it's a 403, don't try to reconnect - the dealer doesn't have access
+        console.warn('SessionLeaderboard SSE: Connection closed. This may be due to insufficient permissions.');
         isConnected = false;
         
         // Close the connection
         eventSource.close();
         
-        // Attempt to reconnect if we haven't exceeded max attempts
-        if (reconnectAttempts < maxReconnectAttempts) {
+        // Only attempt to reconnect if we haven't exceeded max attempts
+        // But skip reconnection if we suspect it's a 403 (permission issue)
+        if (reconnectAttempts < maxReconnectAttempts && reconnectAttempts === 0) {
+          // Only try once - if it fails again, it's likely a permission issue
           reconnectAttempts++;
           reconnectAttemptsRef.current = reconnectAttempts;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff, max 10s
+          const delay = 2000; // 2 second delay
           
           reconnectTimeout = setTimeout(() => {
-            console.log(`Attempting to reconnect dealer SSE for leaderboard (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
-            // Refresh leaderboard to trigger reconnection
-            dispatch(fetchSessionLeaderboard(sessionId));
+            console.log(`SessionLeaderboard SSE: Attempting to reconnect (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
+            // Don't trigger a page reload - just try to reconnect
+            // The useEffect will handle reconnection by recreating the EventSource
           }, delay);
           reconnectTimeoutRef.current = reconnectTimeout;
         } else {
-          console.error('Max dealer SSE reconnection attempts reached for leaderboard. Falling back to polling.');
+          console.error('SessionLeaderboard SSE: Connection failed. Falling back to polling.');
           // Fallback to polling if SSE fails completely
           fallbackInterval = setInterval(() => {
             dispatch(fetchSessionLeaderboard(sessionId));
           }, 10000); // Poll every 10 seconds
         }
+      } else if (eventSource.readyState === EventSource.CONNECTING) {
+        console.log('SessionLeaderboard SSE: Reconnecting...');
+      } else if (eventSource.readyState === EventSource.OPEN) {
+        // Connection is open, reset reconnect attempts
+        reconnectAttempts = 0;
+        reconnectAttemptsRef.current = 0;
       }
     };
 
@@ -211,10 +267,11 @@ const SessionLeaderboard = () => {
       }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
-        console.log('Dealer SSE connection closed for leaderboard');
+        eventSourceRef.current = null;
+        console.log('SessionLeaderboard SSE: Connection closed and cleaned up');
       }
     };
-  }, [dispatch, sessionId, session?.status]);
+  }, [dispatch, sessionId]); // Removed session?.status from dependencies to prevent unnecessary reconnections
 
   useEffect(() => {
     if (bidOperationSuccess) {

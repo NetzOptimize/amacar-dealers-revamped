@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -31,6 +31,9 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
   const [perks, setPerks] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Track the last session ID we fetched products for to prevent duplicate calls
+  const lastFetchedSessionIdRef = useRef(null);
 
   // Get selected product details
   const selectedProduct = useMemo(() => {
@@ -38,16 +41,27 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
   }, [productId, eligibleProducts]);
 
   useEffect(() => {
+    // Only fetch when dialog opens and we haven't already fetched for this session
     if (isOpen && session?.id) {
+      const sessionId = session.id;
+      
+      // Reset form when dialog opens
       setBidAmount("");
       setPerks("");
       setProductId("");
       setErrors({});
       setIsSubmitting(false);
-      // Fetch eligible products when dialog opens
-      dispatch(fetchEligibleProducts(session.id));
+      
+      // Only fetch if we haven't already fetched for this session ID
+      if (lastFetchedSessionIdRef.current !== sessionId && !productsLoading) {
+        lastFetchedSessionIdRef.current = sessionId;
+        dispatch(fetchEligibleProducts(sessionId));
+      }
+    } else if (!isOpen) {
+      // Reset the ref when dialog closes
+      lastFetchedSessionIdRef.current = null;
     }
-  }, [isOpen, session, dispatch]);
+  }, [isOpen, session?.id, dispatch, productsLoading]);
 
   const validateForm = () => {
     const newErrors = {};
