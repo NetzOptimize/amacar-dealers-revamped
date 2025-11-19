@@ -24,6 +24,7 @@ import VehicleDetails from "./pages/dashboard/VehicleDetails";
 import CheckoutPage from "./components/stripe/CheckoutPage";
 import PaymentSuccess from "./components/stripe/PaymentSuccess";
 import { SearchProvider } from "./context/SearchContext";
+import { SSEProvider } from "./context/SSEContext";
 import InvitedDealerships from "./pages/dashboard/InvitedDealerships";
 import SalesManagers from "./pages/dashboard/SalesManagers";
 import DealershipUsers from "./pages/dashboard/DealershipUsers";
@@ -52,7 +53,8 @@ function App() {
 
   return (
     <SearchProvider>
-      <div className="min-h-screen bg-slate-50">
+      <SSEProvider>
+        <div className="min-h-screen bg-slate-50">
         <Toaster
           position="top-right"
           toastOptions={{
@@ -317,6 +319,7 @@ function App() {
         {/* {!hideHeaderFooter && <BackToTop />} */}
         <BackToTop />
       </div>
+      </SSEProvider>
     </SearchProvider>
   );
 }
