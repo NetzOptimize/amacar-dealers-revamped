@@ -505,10 +505,6 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
                   variants={rowVariants}
                   initial="hidden"
                   animate="visible"
-                  whileHover={{ 
-                    scale: 1.01,
-                    transition: { duration: 0.2 }
-                  }}
                   className="border-neutral-200 hover:bg-neutral-50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
