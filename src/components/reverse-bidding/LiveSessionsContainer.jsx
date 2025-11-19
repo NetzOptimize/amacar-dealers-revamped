@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -11,6 +11,9 @@ import {
   Users,
   MapPin,
   Image as ImageIcon,
+  MoreHorizontal,
+  User,
+  Car,
 } from "lucide-react";
 import {
   useReactTable,
@@ -31,6 +34,13 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CustomerDetailsModal from "@/components/common/CustomerDetailsModal/CustomerDetailsModal";
 
 // Component to track live countdown for each session using API's time_remaining
 const LiveCountdown = ({ session }) => {
@@ -80,10 +90,29 @@ const LiveCountdown = ({ session }) => {
   return <span>{displayTime}</span>;
 };
 
-const LiveSessionsContainer = ({ sessions = [] }) => {
+const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft = false, isWonSessions = false }) => {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  
+  // Customer modal state
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [selectedCustomerName, setSelectedCustomerName] = useState("");
+
+  // Handle view customer
+  const handleViewCustomer = useCallback((customerId, customerName = "") => {
+    setSelectedCustomerId(customerId);
+    setSelectedCustomerName(customerName);
+    setIsCustomerModalOpen(true);
+  }, []);
+
+  // Handle close customer modal
+  const handleCloseCustomerModal = useCallback(() => {
+    setIsCustomerModalOpen(false);
+    setSelectedCustomerId(null);
+    setSelectedCustomerName("");
+  }, []);
 
   const columnHelper = createColumnHelper();
 
@@ -157,29 +186,32 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
           );
         },
       }),
-      columnHelper.accessor("timeLeft", {
-        header: "Time Left",
-        cell: (info) => {
-          const session = info.row.original;
-          const isExpired = session.isExpired;
-          const totalSeconds = session.timeLeftSeconds || 0;
-          const isLowTime = totalSeconds < 3600 && totalSeconds > 0; // Less than 1 hour
-          const isCriticalTime = totalSeconds < 900 && totalSeconds > 0; // Less than 15 minutes
-          
-          return (
-            <div className="flex items-center gap-2">
-              <Clock className={`w-4 h-4 ${
-                isExpired ? 'text-red-500' : isCriticalTime ? 'text-red-500' : isLowTime ? 'text-orange-500' : 'text-blue-500'
-              }`} />
-              <span className={`font-medium font-mono ${
-                isExpired ? 'text-red-600' : isCriticalTime ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-blue-600'
-              }`}>
-                <LiveCountdown session={session} />
-              </span>
-            </div>
-          );
-        },
-      }),
+      // Only show "Time Left" column if not hidden
+      ...(hideTimeLeft ? [] : [
+        columnHelper.accessor("timeLeft", {
+          header: "Time Left",
+          cell: (info) => {
+            const session = info.row.original;
+            const isExpired = session.isExpired;
+            const totalSeconds = session.timeLeftSeconds || 0;
+            const isLowTime = totalSeconds < 3600 && totalSeconds > 0; // Less than 1 hour
+            const isCriticalTime = totalSeconds < 900 && totalSeconds > 0; // Less than 15 minutes
+            
+            return (
+              <div className="flex items-center gap-2">
+                <Clock className={`w-4 h-4 ${
+                  isExpired ? 'text-red-500' : isCriticalTime ? 'text-red-500' : isLowTime ? 'text-orange-500' : 'text-blue-500'
+                }`} />
+                <span className={`font-medium font-mono ${
+                  isExpired ? 'text-red-600' : isCriticalTime ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-blue-600'
+                }`}>
+                  <LiveCountdown session={session} />
+                </span>
+              </div>
+            );
+          },
+        }),
+      ]),
       columnHelper.accessor("totalBids", {
         header: "Total Bids",
         cell: (info) => {
@@ -193,21 +225,24 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
           );
         },
       }),
-      columnHelper.accessor("dealerBidCount", {
-        header: "My Bids",
-        cell: (info) => {
-          const session = info.row.original;
-          const dealerBidCount = info.getValue() || 0;
-          return (
-            <div className="flex items-center gap-1.5">
-              <TrendingDown className={`w-4 h-4 ${dealerBidCount > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
-              <span className={`font-medium ${dealerBidCount > 0 ? 'text-orange-600' : 'text-neutral-500'}`}>
-                {dealerBidCount}
-              </span>
-            </div>
-          );
-        },
-      }),
+      // Only show "My Bids" column if not hidden
+      ...(hideMyBids ? [] : [
+        columnHelper.accessor("dealerBidCount", {
+          header: "My Bids",
+          cell: (info) => {
+            const session = info.row.original;
+            const dealerBidCount = info.getValue() || 0;
+            return (
+              <div className="flex items-center gap-1.5">
+                <TrendingDown className={`w-4 h-4 ${dealerBidCount > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
+                <span className={`font-medium ${dealerBidCount > 0 ? 'text-orange-600' : 'text-neutral-500'}`}>
+                  {dealerBidCount}
+                </span>
+              </div>
+            );
+          },
+        }),
+      ]),
       columnHelper.display({
         id: "location",
         header: "Location",
@@ -250,9 +285,67 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
         header: "Actions",
         cell: (info) => {
           const session = info.row.original;
-          // Disable if expired or not active
+          // Disable if expired or not active (only for live sessions)
           const isActive = session.status === "active" && !session.isExpired;
           
+          // For won sessions, show dropdown menu
+          if (isWonSessions) {
+            const customerUserId = session.customerUserId || session.customer_user_id;
+            const productId = session.winningBidProductId || session.winning_bid?.product_id || session.primaryVehicleId;
+            // Get customer name from winning bid or session data
+            const customerName = session.winning_bid?.customer_name || 
+                                session.customer_name || 
+                                session.customerContact?.name || 
+                                "";
+            
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-neutral-100 cursor-pointer"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  side="bottom"
+                  sideOffset={4}
+                  className="w-56 bg-white border border-neutral-200 rounded-xl shadow-lg p-1 overflow-hidden backdrop-blur-sm bg-opacity-90 z-50"
+                >
+                  {customerUserId && (
+                    <DropdownMenuItem
+                      onClick={() => handleViewCustomer(customerUserId, customerName)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                    >
+                      <User className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                      <span>View Customer</span>
+                    </DropdownMenuItem>
+                  )}
+                  {productId && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/vehicle-details/${productId}`)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                    >
+                      <Car className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                      <span>View Vehicle</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/reverse-bidding/session/${session.id}`)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                  >
+                    <Eye className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                    <span>View Session</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          }
+          
+          // For live sessions, show regular button
           return (
             <Button
               variant="outline"
@@ -268,7 +361,7 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
         },
       }),
     ],
-    [columnHelper, navigate]
+    [columnHelper, navigate, hideMyBids, hideTimeLeft, isWonSessions, handleViewCustomer]
   );
 
   const table = useReactTable({
@@ -297,29 +390,69 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
     },
   };
 
+  // Row animation variants
+  const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.05,
+        duration: 0.4,
+        ease: "easeOut",
+      },
+    }),
+  };
+
+  // Header animation variants
+  const headerRowVariants = {
+    hidden: { opacity: 0, y: -10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  // Create motion versions of table components
+  const MotionTableRow = motion(TableRow);
+  const MotionTableCell = motion(TableCell);
+
   return (
     <motion.div
       variants={itemVariants}
       className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6"
     >
       {/* Search */}
-      <div className="mb-6">
-        <input
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="mb-6"
+      >
+        <motion.input
+          whileFocus={{ scale: 1.01 }}
           type="text"
           placeholder="Search sessions..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
         />
-      </div>
+      </motion.div>
 
       {/* Table */}
       <div className="overflow-x-auto">
         <Table className="w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
+              <MotionTableRow
                 key={headerGroup.id}
+                variants={headerRowVariants}
+                initial="hidden"
+                animate="visible"
                 className="border-neutral-200 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
@@ -360,25 +493,39 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
                     </TableHead>
                   );
                 })}
-              </TableRow>
+              </MotionTableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
+              table.getRowModel().rows.map((row, index) => (
+                <MotionTableRow
                   key={row.id}
+                  custom={index}
+                  variants={rowVariants}
+                  initial="hidden"
+                  animate="visible"
+                  whileHover={{ 
+                    scale: 1.01,
+                    transition: { duration: 0.2 }
+                  }}
                   className="border-neutral-200 hover:bg-neutral-50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4">
+                    <MotionTableCell
+                      key={cell.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.05 + 0.2 }}
+                      className="py-4"
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
                       )}
-                    </TableCell>
+                    </MotionTableCell>
                   ))}
-                </TableRow>
+                </MotionTableRow>
               ))
             ) : (
               <TableRow>
@@ -393,6 +540,14 @@ const LiveSessionsContainer = ({ sessions = [] }) => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Customer Details Modal */}
+      <CustomerDetailsModal
+        isOpen={isCustomerModalOpen}
+        onClose={handleCloseCustomerModal}
+        customerId={selectedCustomerId}
+        customerName={selectedCustomerName}
+      />
     </motion.div>
   );
 };

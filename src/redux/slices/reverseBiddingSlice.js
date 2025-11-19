@@ -6,6 +6,8 @@ import {
     submitReverseBid,
     withdrawReverseBid,
     getEligibleProducts,
+    getWonSessions,
+    getMyReverseBids,
 } from '@/lib/api';
 
 // Transform API session data to UI format
@@ -70,9 +72,14 @@ const transformSession = (apiSession) => {
         totalBids: parseInt(apiSession.total_bids) || 0,
         dealerBidCount: parseInt(apiSession.dealer_bid_count) || 0,
         winningBidId: apiSession.winning_bid_id || null,
+        winningBidProductId: apiSession.winning_bid?.product_id || null,
+        winningBid: apiSession.winning_bid || null,
+        customerUserId: apiSession.customer_user_id || null,
+        customer_user_id: apiSession.customer_user_id || null,
         customerContact: apiSession.customer_contact || null,
         leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
         timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
+        wonAt: apiSession.won_at || null, // Include won_at timestamp for won sessions
     };
 };
 
@@ -309,11 +316,80 @@ export const fetchEligibleProducts = createAsyncThunk(
     }
 );
 
+// Async thunk to fetch won sessions
+export const fetchWonSessions = createAsyncThunk(
+    'reverseBidding/fetchWonSessions',
+    async (params = {}, { rejectWithValue }) => {
+        try {
+            const response = await getWonSessions(params);
+            
+            if (!response.success) {
+                return rejectWithValue(response.message || 'Failed to fetch won sessions');
+            }
+            
+            // Transform API response to UI format
+            const sessionsData = response.data?.data || response.data || [];
+            const sessions = Array.isArray(sessionsData) 
+                ? sessionsData.map(transformSession)
+                : [];
+            
+            return {
+                success: true,
+                sessions: sessions,
+                total: response.data?.pagination?.total_items || response.total || sessions.length,
+                pagination: response.data?.pagination || response.pagination,
+            };
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch won sessions';
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
+// Async thunk to fetch my reverse bids
+export const fetchMyReverseBids = createAsyncThunk(
+    'reverseBidding/fetchMyReverseBids',
+    async (params = {}, { rejectWithValue }) => {
+        try {
+            const response = await getMyReverseBids(params);
+            
+            if (!response.success) {
+                return rejectWithValue(response.message || 'Failed to fetch my reverse bids');
+            }
+            
+            // The bids data is nested at response.data.data
+            const bidsData = response.data?.data || response.data || [];
+            
+            return {
+                success: true,
+                bids: Array.isArray(bidsData) ? bidsData : [],
+                total: response.data?.pagination?.total_items || response.total || bidsData.length,
+                pagination: response.data?.pagination || response.pagination,
+            };
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch my reverse bids';
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
 const initialState = {
     // Live sessions list
     sessions: [],
     sessionsLoading: false,
     sessionsError: null,
+
+    // Won sessions list
+    wonSessions: [],
+    wonSessionsLoading: false,
+    wonSessionsError: null,
+    wonSessionsPagination: null,
+
+    // My reverse bids list
+    myReverseBids: [],
+    myReverseBidsLoading: false,
+    myReverseBidsError: null,
+    myReverseBidsPagination: null,
 
     // Current session leaderboard
     currentSessionId: null,
@@ -499,6 +575,36 @@ const reverseBiddingSlice = createSlice({
             .addCase(fetchEligibleProducts.rejected, (state, action) => {
                 state.eligibleProductsLoading = false;
                 state.eligibleProductsError = action.payload || 'Failed to fetch eligible products';
+            })
+            // Fetch won sessions
+            .addCase(fetchWonSessions.pending, (state) => {
+                state.wonSessionsLoading = true;
+                state.wonSessionsError = null;
+            })
+            .addCase(fetchWonSessions.fulfilled, (state, action) => {
+                state.wonSessionsLoading = false;
+                state.wonSessionsError = null;
+                state.wonSessions = action.payload.sessions || [];
+                state.wonSessionsPagination = action.payload.pagination || null;
+            })
+            .addCase(fetchWonSessions.rejected, (state, action) => {
+                state.wonSessionsLoading = false;
+                state.wonSessionsError = action.payload || 'Failed to fetch won sessions';
+            })
+            // Fetch my reverse bids
+            .addCase(fetchMyReverseBids.pending, (state) => {
+                state.myReverseBidsLoading = true;
+                state.myReverseBidsError = null;
+            })
+            .addCase(fetchMyReverseBids.fulfilled, (state, action) => {
+                state.myReverseBidsLoading = false;
+                state.myReverseBidsError = null;
+                state.myReverseBids = action.payload.bids || [];
+                state.myReverseBidsPagination = action.payload.pagination || null;
+            })
+            .addCase(fetchMyReverseBids.rejected, (state, action) => {
+                state.myReverseBidsLoading = false;
+                state.myReverseBidsError = action.payload || 'Failed to fetch my reverse bids';
             });
     },
 });
@@ -532,6 +638,16 @@ export const selectBidOperationSuccess = (state) => state.reverseBidding.bidOper
 export const selectEligibleProducts = (state) => state.reverseBidding.eligibleProducts;
 export const selectEligibleProductsLoading = (state) => state.reverseBidding.eligibleProductsLoading;
 export const selectEligibleProductsError = (state) => state.reverseBidding.eligibleProductsError;
+
+export const selectWonSessions = (state) => state.reverseBidding.wonSessions;
+export const selectWonSessionsLoading = (state) => state.reverseBidding.wonSessionsLoading;
+export const selectWonSessionsError = (state) => state.reverseBidding.wonSessionsError;
+export const selectWonSessionsPagination = (state) => state.reverseBidding.wonSessionsPagination;
+
+export const selectMyReverseBids = (state) => state.reverseBidding.myReverseBids;
+export const selectMyReverseBidsLoading = (state) => state.reverseBidding.myReverseBidsLoading;
+export const selectMyReverseBidsError = (state) => state.reverseBidding.myReverseBidsError;
+export const selectMyReverseBidsPagination = (state) => state.reverseBidding.myReverseBidsPagination;
 
 export default reverseBiddingSlice.reducer;
 

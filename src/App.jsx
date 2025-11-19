@@ -32,6 +32,8 @@ import SubscriptionCancellationRequests from "./pages/dashboard/SubscriptionCanc
 import PartnerDealers from "./pages/dashboard/PartnerDealers";
 import LiveSessions from "./pages/dashboard/LiveSessions";
 import SessionLeaderboard from "./pages/dashboard/SessionLeaderboard";
+import WonSessions from "./pages/dashboard/WonSessions";
+import MyReverseBids from "./pages/dashboard/MyReverseBids";
 import PrivacyPolicy from "./pages/privacy-policy/PrivacyPolicy";
 import TermsOfService from "./pages/terms-conditions/TermsOfService";
 import DealershipAgreement from "./pages/dealership-agreement/DealershipAgreement";
@@ -278,6 +280,26 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <SessionLeaderboard />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/won-sessions"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <WonSessions />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-reverse-bids"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <MyReverseBids />
                   </DashboardLayout>
                 </PrivateRoute>
               }

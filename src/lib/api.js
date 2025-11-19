@@ -473,6 +473,28 @@ export const getDealerSessions = async (params = {}) => {
   }
 };
 
+// Get won sessions (sessions won by the logged-in dealer)
+export const getWonSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/won-sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching won sessions:', error);
+    throw error;
+  }
+};
+
+// Get dealer's reverse bids (all bids by the logged-in dealer)
+export const getMyReverseBids = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/my-bids', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching my reverse bids:', error);
+    throw error;
+  }
+};
+
 // Get dealer's bids for a specific session
 export const getDealerSessionBids = async (sessionId) => {
   try {
