@@ -43,6 +43,8 @@ const SessionLeaderboard = () => {
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const lastFetchedSessionIdRef = useRef(null);
+  const isFetchingRef = useRef(false);
 
   // Get base URL for reverse bid API
   const getReverseBidBaseURL = () => {
@@ -71,9 +73,27 @@ const SessionLeaderboard = () => {
 
   // Initial fetch of session leaderboard
   useEffect(() => {
-    if (sessionId) {
-      dispatch(fetchSessionLeaderboard(sessionId));
+    if (!sessionId) {
+      lastFetchedSessionIdRef.current = null;
+      return;
     }
+    
+    // Prevent duplicate fetches for the same session
+    if (lastFetchedSessionIdRef.current === sessionId) {
+      return;
+    }
+    
+    // Prevent fetching if already in progress
+    if (isFetchingRef.current) {
+      return;
+    }
+    
+    lastFetchedSessionIdRef.current = sessionId;
+    isFetchingRef.current = true;
+    
+    dispatch(fetchSessionLeaderboard(sessionId)).finally(() => {
+      isFetchingRef.current = false;
+    });
   }, [dispatch, sessionId]);
 
   // Set up SSE connection for real-time leaderboard updates
@@ -137,16 +157,24 @@ const SessionLeaderboard = () => {
       }
     });
 
+    // Helper function to safely fetch session leaderboard (prevents duplicate calls)
+    const safeFetchSessionLeaderboard = () => {
+      if (isFetchingRef.current) {
+        return; // Already fetching, skip
+      }
+      
+      isFetchingRef.current = true;
+      dispatch(fetchSessionLeaderboard(sessionId)).finally(() => {
+        isFetchingRef.current = false;
+      });
+    };
+
     // Handle leaderboard_updated event - update leaderboard directly from SSE
     eventSource.addEventListener('leaderboard_updated', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SessionLeaderboard SSE: leaderboard_updated event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId) && data.leaderboard) {
-          console.log('SessionLeaderboard SSE: Updating leaderboard from SSE for session', sessionId);
-          // Update leaderboard directly from SSE data
-          // We need to refresh the full session to get updated session data as well
-          dispatch(fetchSessionLeaderboard(sessionId));
+          safeFetchSessionLeaderboard();
         }
       } catch (err) {
         console.error('SessionLeaderboard SSE: Error parsing leaderboard_updated event:', err);
@@ -157,11 +185,8 @@ const SessionLeaderboard = () => {
     eventSource.addEventListener('bid_received', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SessionLeaderboard SSE: bid_received event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
-          console.log('SessionLeaderboard SSE: Refreshing leaderboard for session', sessionId);
-          // Refresh leaderboard for this session
-          dispatch(fetchSessionLeaderboard(sessionId));
+          safeFetchSessionLeaderboard();
         }
       } catch (err) {
         console.error('SessionLeaderboard SSE: Error parsing bid_received event:', err);
@@ -172,11 +197,8 @@ const SessionLeaderboard = () => {
     eventSource.addEventListener('bid_revised', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SessionLeaderboard SSE: bid_revised event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
-          console.log('SessionLeaderboard SSE: Refreshing leaderboard for session', sessionId);
-          // Refresh leaderboard for this session
-          dispatch(fetchSessionLeaderboard(sessionId));
+          safeFetchSessionLeaderboard();
         }
       } catch (err) {
         console.error('SessionLeaderboard SSE: Error parsing bid_revised event:', err);
@@ -187,11 +209,8 @@ const SessionLeaderboard = () => {
     eventSource.addEventListener('session_ended', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SessionLeaderboard SSE: session_ended event', data);
         if (data.session_id && parseInt(data.session_id) === parseInt(sessionId)) {
-          console.log('SessionLeaderboard SSE: Refreshing session status for session', sessionId);
-          // Refresh to get updated session status
-          dispatch(fetchSessionLeaderboard(sessionId));
+          safeFetchSessionLeaderboard();
         }
       } catch (err) {
         console.error('SessionLeaderboard SSE: Error parsing session_ended event:', err);
@@ -242,7 +261,12 @@ const SessionLeaderboard = () => {
           console.error('SessionLeaderboard SSE: Connection failed. Falling back to polling.');
           // Fallback to polling if SSE fails completely
           fallbackInterval = setInterval(() => {
-            dispatch(fetchSessionLeaderboard(sessionId));
+            if (!isFetchingRef.current) {
+              isFetchingRef.current = true;
+              dispatch(fetchSessionLeaderboard(sessionId)).finally(() => {
+                isFetchingRef.current = false;
+              });
+            }
           }, 10000); // Poll every 10 seconds
         }
       } else if (eventSource.readyState === EventSource.CONNECTING) {
@@ -276,7 +300,12 @@ const SessionLeaderboard = () => {
   useEffect(() => {
     if (bidOperationSuccess) {
       // Refresh leaderboard after successful bid operation
-      dispatch(fetchSessionLeaderboard(sessionId));
+      if (!isFetchingRef.current) {
+        isFetchingRef.current = true;
+        dispatch(fetchSessionLeaderboard(sessionId)).finally(() => {
+          isFetchingRef.current = false;
+        });
+      }
       dispatch(clearBidOperationStates());
     }
   }, [bidOperationSuccess, dispatch, sessionId]);
