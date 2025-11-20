@@ -484,6 +484,17 @@ export const getWonSessions = async (params = {}) => {
   }
 };
 
+// Get vehicle details (only for vehicles owned by dealer)
+export const getVehicleDetail = async (vehicleId) => {
+  try {
+    const response = await reverseBidApi.get(`/dealer/vehicles/${vehicleId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle details:', error);
+    throw error;
+  }
+};
+
 // Get dealer's reverse bids (all bids by the logged-in dealer)
 export const getMyReverseBids = async (params = {}) => {
   try {
