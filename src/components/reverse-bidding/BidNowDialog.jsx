@@ -127,7 +127,7 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white/90 via-white/80 to-white/90 backdrop-blur-2xl border border-white/40 shadow-2xl ring-1 ring-white/20">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary-600" />

@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { submitBid, fetchLiveSessions } from "@/redux/slices/reverseBiddingSlice";
+import { toast } from "react-hot-toast";
 import {
   Eye,
   Clock,
@@ -43,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CustomerDetailsModal from "@/components/common/CustomerDetailsModal/CustomerDetailsModal";
+import BidNowDialog from "@/components/reverse-bidding/BidNowDialog";
 
 // Component to track live countdown for each session using API's time_remaining
 const LiveCountdown = ({ session }) => {
@@ -94,6 +97,7 @@ const LiveCountdown = ({ session }) => {
 
 const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft = false, isWonSessions = false }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
   
@@ -104,6 +108,10 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
+  
+  // Bid dialog state
+  const [bidDialogOpen, setBidDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   // Handle view customer
   const handleViewCustomer = useCallback((customerId, customerName = "") => {
@@ -118,6 +126,32 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
     setSelectedCustomerId(null);
     setSelectedCustomerName("");
   }, []);
+  
+  // Handle open bid dialog
+  const handleOpenBidDialog = useCallback((session) => {
+    setSelectedSession(session);
+    setBidDialogOpen(true);
+  }, []);
+  
+  // Handle close bid dialog
+  const handleCloseBidDialog = useCallback(() => {
+    setBidDialogOpen(false);
+    setSelectedSession(null);
+  }, []);
+  
+  // Handle bid submission
+  const handleBidSubmit = useCallback(async (bidData) => {
+    try {
+      await dispatch(submitBid(bidData)).unwrap();
+      toast.success("Bid submitted successfully");
+      handleCloseBidDialog();
+      // Refresh sessions list to show updated bid counts
+      dispatch(fetchLiveSessions());
+    } catch (error) {
+      toast.error(error || "Failed to submit bid");
+      throw error;
+    }
+  }, [dispatch, handleCloseBidDialog]);
 
   const columnHelper = createColumnHelper();
 
@@ -179,10 +213,8 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
           return (
             <div className="flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-green-600" />
-              <span className="font-semibold text-neutral-900">
+              <span className="font-semibold text-green-600">
                 {price ? new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
                 }).format(price) : 'N/A'}
@@ -412,23 +444,57 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
             );
           }
           
-          // For live sessions, show regular button
+          // For live sessions, show dropdown menu with three dots
+          // Check if user has bids (to show "Lower your bid" option)
+          const hasUserBids = currentDealerId && session.leaderboard && session.leaderboard.some((bid) => {
+            if (bid.isCurrentDealer) return true;
+            const bidDealerId = bid.dealerId || bid.dealer_id || bid.dealer_user_id;
+            return bidDealerId && String(bidDealerId) === String(currentDealerId);
+          });
+          
           return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/reverse-bidding/session/${session.id}`)}
-              disabled={!isActive}
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              View Session
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-neutral-100 cursor-pointer"
+                  disabled={!isActive}
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="bottom"
+                sideOffset={4}
+                className="w-56 bg-white/90 backdrop-blur-xl border border-white/30 rounded-xl shadow-2xl p-1 overflow-hidden z-50"
+              >
+                {hasUserBids && (
+                  <DropdownMenuItem
+                    onClick={() => handleOpenBidDialog(session)}
+                    disabled={!isActive}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                  >
+                    <TrendingDown className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                    <span>Lower your bid</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => navigate(`/reverse-bidding/session/${session.id}`)}
+                  disabled={!isActive}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                >
+                  <Eye className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                  <span>View Session</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       }),
     ],
-    [columnHelper, navigate, hideMyBids, hideTimeLeft, isWonSessions, handleViewCustomer, currentDealerId]
+    [columnHelper, navigate, hideMyBids, hideTimeLeft, isWonSessions, handleViewCustomer, currentDealerId, handleOpenBidDialog]
   );
 
   const table = useReactTable({
@@ -565,31 +631,52 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row, index) => (
-                <MotionTableRow
-                  key={row.id}
-                  custom={index}
-                  variants={rowVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="border-neutral-200 hover:bg-neutral-50 transition-colors"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <MotionTableCell
-                      key={cell.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 + 0.2 }}
-                      className="py-4"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </MotionTableCell>
-                  ))}
-                </MotionTableRow>
-              ))
+              table.getRowModel().rows.map((row, index) => {
+                const session = row.original;
+                const isActive = session.status === "active" && !session.isExpired;
+                
+                return (
+                  <MotionTableRow
+                    key={row.id}
+                    custom={index}
+                    variants={rowVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="border-neutral-200 hover:bg-neutral-50 transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      // Don't navigate if clicking on interactive elements (buttons, links, dropdowns)
+                      const target = e.target;
+                      if (!target || typeof target.closest !== 'function') return;
+                      
+                      const isInteractiveElement = 
+                        target.closest('button') || 
+                        target.closest('a') || 
+                        target.closest('[role="button"]') ||
+                        target.closest('[data-radix-popper-content-wrapper]') ||
+                        target.closest('[data-radix-dropdown-menu-content]');
+                      
+                      if (!isInteractiveElement && isActive) {
+                        navigate(`/reverse-bidding/session/${session.id}`);
+                      }
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <MotionTableCell
+                        key={cell.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.05 + 0.2 }}
+                        className="py-4"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </MotionTableCell>
+                    ))}
+                  </MotionTableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell
@@ -611,6 +698,16 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
         customerId={selectedCustomerId}
         customerName={selectedCustomerName}
       />
+      
+      {/* Bid Now Dialog */}
+      {selectedSession && (
+        <BidNowDialog
+          isOpen={bidDialogOpen}
+          onClose={handleCloseBidDialog}
+          session={selectedSession}
+          onSubmit={handleBidSubmit}
+        />
+      )}
     </motion.div>
   );
 };
