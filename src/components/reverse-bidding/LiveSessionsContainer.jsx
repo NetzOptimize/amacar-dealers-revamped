@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import {
   Eye,
   Clock,
@@ -14,6 +15,7 @@ import {
   MoreHorizontal,
   User,
   Car,
+  AlertCircle,
 } from "lucide-react";
 import {
   useReactTable,
@@ -94,6 +96,9 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
   const navigate = useNavigate();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  
+  // Get current dealer ID from Redux
+  const currentDealerId = useSelector((state) => state.user?.user?.ID || state.user?.user?.id);
   
   // Customer modal state
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -217,10 +222,72 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
         cell: (info) => {
           const session = info.row.original;
           const totalBids = info.getValue() || 0;
+          
+          // Determine if user is winning or losing
+          let bidStatus = null; // null, 'winning', or 'losing'
+          if (currentDealerId && session.leaderboard && session.leaderboard.length > 0) {
+            // Normalize dealer ID for comparison (handle both string and number)
+            const normalizedDealerId = String(currentDealerId);
+            
+            // Get user's bids from leaderboard
+            // Check both transformed format (isCurrentDealer, dealerId) and raw format (dealer_id, dealer_user_id)
+            const userBids = session.leaderboard.filter((bid) => {
+              if (bid.isCurrentDealer) return true;
+              const bidDealerId = bid.dealerId || bid.dealer_id || bid.dealer_user_id;
+              return bidDealerId && String(bidDealerId) === normalizedDealerId;
+            });
+            
+            // If user has bids, check their status
+            if (userBids.length > 0) {
+              // Get user's lowest bid
+              const userLowestBid = Math.min(...userBids.map(bid => {
+                const price = bid.price || bid.amount;
+                return parseFloat(price) || 0;
+              }));
+              
+              // Get overall lowest bid (first in sorted leaderboard, or find minimum)
+              const allBids = session.leaderboard.map(bid => {
+                const price = bid.price || bid.amount;
+                return parseFloat(price) || 0;
+              });
+              const overallLowestBid = Math.min(...allBids);
+              
+              // User is winning if their lowest bid equals the overall lowest bid
+              // User is losing if overall lowest bid is lower than user's lowest bid
+              if (overallLowestBid !== undefined && !isNaN(overallLowestBid)) {
+                bidStatus = userLowestBid === overallLowestBid ? 'winning' : 'losing';
+              }
+            }
+          }
+          
           return (
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-blue-500" />
-              <span className="font-medium text-neutral-700">{totalBids}</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-blue-500" />
+                <span className="font-medium text-neutral-700">{totalBids}</span>
+              </div>
+              {bidStatus && (
+                <Badge 
+                  variant={bidStatus === 'winning' ? 'default' : 'destructive'}
+                  className={`text-xs px-2 py-0.5 w-fit flex items-center gap-1 ${
+                    bidStatus === 'winning' 
+                      ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100' 
+                      : ''
+                  }`}
+                >
+                  {bidStatus === 'winning' ? (
+                    <>
+                      <TrendingDown className="w-3 h-3" />
+                      Winning
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-3 h-3" />
+                      Losing
+                    </>
+                  )}
+                </Badge>
+              )}
             </div>
           );
         },
@@ -361,7 +428,7 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
         },
       }),
     ],
-    [columnHelper, navigate, hideMyBids, hideTimeLeft, isWonSessions, handleViewCustomer]
+    [columnHelper, navigate, hideMyBids, hideTimeLeft, isWonSessions, handleViewCustomer, currentDealerId]
   );
 
   const table = useReactTable({

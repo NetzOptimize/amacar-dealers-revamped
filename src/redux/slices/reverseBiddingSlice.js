@@ -12,7 +12,7 @@ import {
 
 // Transform API session data to UI format
 // Rely fully on API's time_remaining object - no browser time calculations
-const transformSession = (apiSession) => {
+const transformSession = (apiSession, currentDealerId = null) => {
     const criteria = apiSession.criteria || {};
     const vehicleName = criteria.make && criteria.model 
         ? `${criteria.make} ${criteria.model}` 
@@ -77,7 +77,7 @@ const transformSession = (apiSession) => {
         customerUserId: apiSession.customer_user_id || null,
         customer_user_id: apiSession.customer_user_id || null,
         customerContact: apiSession.customer_contact || null,
-        leaderboard: apiSession.leaderboard || [], // Include leaderboard from session
+        leaderboard: transformLeaderboard(apiSession.leaderboard || [], currentDealerId), // Transform leaderboard with dealer info
         timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
         wonAt: apiSession.won_at || null, // Include won_at timestamp for won sessions
     };
@@ -146,8 +146,12 @@ const transformLeaderboard = (leaderboardData, currentDealerId) => {
 // Async thunk to fetch live reverse bidding sessions
 export const fetchLiveSessions = createAsyncThunk(
     'reverseBidding/fetchLiveSessions',
-    async (params = {}, { rejectWithValue }) => {
+    async (params = {}, { rejectWithValue, getState }) => {
         try {
+            // Get current dealer ID from state
+            const state = getState();
+            const currentDealerId = state.user?.user?.ID || state.user?.user?.id;
+            
             const response = await getDealerSessions(params);
             
             if (!response.success) {
@@ -158,7 +162,7 @@ export const fetchLiveSessions = createAsyncThunk(
             // The sessions array is nested at response.data.data
             const sessionsData = response.data?.data || response.data || [];
             const sessions = Array.isArray(sessionsData) 
-                ? sessionsData.map(transformSession)
+                ? sessionsData.map(session => transformSession(session, currentDealerId))
                 : [];
             
             return {

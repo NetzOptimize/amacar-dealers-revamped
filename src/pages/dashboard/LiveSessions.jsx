@@ -345,7 +345,7 @@ const LiveSessions = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             {sessions.length > 0 ? (
-              <LiveSessionsContainer sessions={sessions} />
+              <LiveSessionsContainer sessions={sessions} hideMyBids={true} />
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12">
                 <div className="flex flex-col items-center justify-center">
