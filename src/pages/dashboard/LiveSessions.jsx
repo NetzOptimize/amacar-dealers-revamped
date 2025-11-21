@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -23,6 +23,10 @@ const LiveSessions = () => {
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const fetchInProgressRef = useRef(false);
+  const debounceTimeoutRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
+  const debouncedFetchRef = useRef(null);
 
   // Get base URL for reverse bid API
   const getReverseBidBaseURL = () => {
@@ -49,10 +53,41 @@ const LiveSessions = () => {
     return baseURL;
   };
 
+  // Debounced fetch function to prevent multiple simultaneous calls
+  const debouncedFetchSessions = useCallback((immediate = false, delay = 500) => {
+    // Clear any existing debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+
+    // If immediate is true and no fetch is in progress, fetch immediately
+    if (immediate && !fetchInProgressRef.current) {
+      fetchInProgressRef.current = true;
+      dispatch(fetchLiveSessions()).finally(() => {
+        fetchInProgressRef.current = false;
+      });
+      return;
+    }
+
+    // Otherwise, debounce the fetch
+    debounceTimeoutRef.current = setTimeout(() => {
+      if (!fetchInProgressRef.current) {
+        fetchInProgressRef.current = true;
+        dispatch(fetchLiveSessions()).finally(() => {
+          fetchInProgressRef.current = false;
+        });
+      }
+    }, delay);
+  }, [dispatch]);
+
+  // Store debounced function in ref for use in SSE handlers
+  debouncedFetchRef.current = debouncedFetchSessions;
+
   // Initial fetch of sessions
   useEffect(() => {
-    dispatch(fetchLiveSessions());
-  }, [dispatch]);
+    debouncedFetchSessions(true, 0);
+  }, [debouncedFetchSessions]);
 
   // Set up SSE connection for real-time updates
   useEffect(() => {
@@ -70,7 +105,6 @@ const LiveSessions = () => {
     eventSourceRef.current = eventSource;
     let reconnectTimeout = null;
     let reconnectAttempts = 0;
-    let fallbackInterval = null;
     let isConnected = false;
 
     // Handle connection opened
@@ -79,6 +113,11 @@ const LiveSessions = () => {
       reconnectAttempts = 0;
       reconnectAttemptsRef.current = 0;
       isConnected = true;
+      // Stop fallback polling if SSE is connected
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
     };
 
     // Handle connected event
@@ -87,6 +126,11 @@ const LiveSessions = () => {
         const data = JSON.parse(event.data);
         console.log('Dealer SSE connected:', data);
         isConnected = true;
+        // Stop fallback polling if SSE is connected
+        if (fallbackIntervalRef.current) {
+          clearInterval(fallbackIntervalRef.current);
+          fallbackIntervalRef.current = null;
+        }
       } catch (err) {
         console.error('Error parsing connected event:', err);
       }
@@ -96,9 +140,9 @@ const LiveSessions = () => {
     eventSource.addEventListener('session_started', (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.session_id && data.data) {
-          // Refresh sessions list to get the new session
-          dispatch(fetchLiveSessions());
+        if (data.session_id && data.data && debouncedFetchRef.current) {
+          // Refresh sessions list to get the new session (immediate fetch)
+          debouncedFetchRef.current(true, 0);
         }
       } catch (err) {
         console.error('Error parsing session_started event:', err);
@@ -121,9 +165,9 @@ const LiveSessions = () => {
     eventSource.addEventListener('bid_received', (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.session_id) {
-          // Refresh sessions to get updated bid counts
-          dispatch(fetchLiveSessions());
+        if (data.session_id && debouncedFetchRef.current) {
+          // Debounce refresh to prevent rapid successive calls (1 second delay)
+          debouncedFetchRef.current(false, 1000);
         }
       } catch (err) {
         console.error('Error parsing bid_received event:', err);
@@ -134,9 +178,9 @@ const LiveSessions = () => {
     eventSource.addEventListener('bid_revised', (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.session_id) {
-          // Refresh sessions to get updated bid counts
-          dispatch(fetchLiveSessions());
+        if (data.session_id && debouncedFetchRef.current) {
+          // Debounce refresh to prevent rapid successive calls (1 second delay)
+          debouncedFetchRef.current(false, 1000);
         }
       } catch (err) {
         console.error('Error parsing bid_revised event:', err);
@@ -171,16 +215,22 @@ const LiveSessions = () => {
           
           reconnectTimeout = setTimeout(() => {
             console.log(`Attempting to reconnect dealer SSE (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
-            // Trigger reconnection by refreshing sessions
-            dispatch(fetchLiveSessions());
+            // Trigger reconnection by refreshing sessions (debounced)
+            if (debouncedFetchRef.current) {
+              debouncedFetchRef.current(true, 0);
+            }
           }, delay);
           reconnectTimeoutRef.current = reconnectTimeout;
         } else {
           console.error('Max dealer SSE reconnection attempts reached. Falling back to polling.');
-          // Fallback to polling if SSE fails completely
-          fallbackInterval = setInterval(() => {
-            dispatch(fetchLiveSessions());
-          }, 10000); // Poll every 10 seconds
+          // Fallback to polling if SSE fails completely (only if not already polling)
+          if (!fallbackIntervalRef.current && debouncedFetchRef.current) {
+            fallbackIntervalRef.current = setInterval(() => {
+              if (!isConnected && debouncedFetchRef.current) {
+                debouncedFetchRef.current(false, 0);
+              }
+            }, 10000); // Poll every 10 seconds
+          }
         }
       }
     };
@@ -193,8 +243,12 @@ const LiveSessions = () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      if (fallbackInterval) {
-        clearInterval(fallbackInterval);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
       }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
