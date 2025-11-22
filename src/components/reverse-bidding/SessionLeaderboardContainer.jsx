@@ -12,6 +12,7 @@ import {
   Users,
   Calendar,
   Award,
+  DollarSign,
 } from "lucide-react";
 import {
   useReactTable,
@@ -430,6 +431,34 @@ const SessionLeaderboardContainer = ({
         </div>
       </div>
 
+
+      {/* Bid Now Section - Only show when already_bid is false */}
+      {!session.alreadyBid && isSessionActive && (
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-900">
+                  Ready to place your bid?
+                </h3>
+                <p className="text-xs text-neutral-600">
+                  Submit your best offer to compete in this reverse bidding session.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={onBidNow}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 flex items-center gap-2 text-sm"
+            >
+              <DollarSign className="w-4 h-4" />
+              Bid Now
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">

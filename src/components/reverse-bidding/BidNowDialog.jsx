@@ -31,7 +31,7 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
   const [perks, setPerks] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Track the last session ID we fetched products for to prevent duplicate calls
   const lastFetchedSessionIdRef = useRef(null);
 
@@ -39,6 +39,33 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
   const selectedProduct = useMemo(() => {
     return eligibleProducts.find(p => String(p.id) === String(productId));
   }, [productId, eligibleProducts]);
+
+  // Helper function to check if form is valid
+  const isFormValid = useMemo(() => {
+    if (!productId || !bidAmount || bidAmount.trim() === "") {
+      return false;
+    }
+    
+    // Check if there are any actual error messages
+    const hasErrors = Object.values(errors).some(error => error && error.trim() !== "");
+    if (hasErrors) {
+      return false;
+    }
+    
+    // Validate bid amount is a valid number and less than vehicle price
+    const amount = parseFloat(bidAmount);
+    if (isNaN(amount) || amount <= 0) {
+      return false;
+    }
+    
+    const vehiclePrice = selectedProduct?.price ? parseFloat(selectedProduct.price) : null;
+    const basePrice = vehiclePrice || (session?.criteria?.price ? parseFloat(session.criteria.price) : null);
+    if (basePrice !== null && amount >= basePrice) {
+      return false;
+    }
+    
+    return true;
+  }, [productId, bidAmount, errors, selectedProduct, session]);
 
   useEffect(() => {
     // Only fetch when dialog opens and we haven't already fetched for this session
@@ -74,10 +101,15 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
       newErrors.bidAmount = "Bid amount is required";
     } else {
       const amount = parseFloat(bidAmount);
+      // Use selected product's price if available, otherwise fall back to session base price
+      const vehiclePrice = selectedProduct?.price ? parseFloat(selectedProduct.price) : null;
+      const basePrice = vehiclePrice || (session?.criteria?.price ? parseFloat(session.criteria.price) : null);
+      
       if (isNaN(amount) || amount <= 0) {
         newErrors.bidAmount = "Please enter a valid bid amount";
-      }
-      if (amount > 1000000) {
+      } else if (basePrice !== null && amount >= basePrice) {
+        newErrors.bidAmount = `Bid amount must be less than the vehicle price of $${basePrice.toLocaleString()}`;
+      } else if (amount > 1000000) {
         newErrors.bidAmount = "Bid amount seems too high";
       }
     }
@@ -117,8 +149,25 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
     // Allow only numbers and one decimal point
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setBidAmount(value);
+      
+      // Clear error if it exists
       if (errors.bidAmount) {
         setErrors({ ...errors, bidAmount: "" });
+      }
+      
+      // Real-time validation: check if amount exceeds selected vehicle's price
+      if (value && value.trim() !== "") {
+        const amount = parseFloat(value);
+        // Use selected product's price if available, otherwise fall back to session base price
+        const vehiclePrice = selectedProduct?.price ? parseFloat(selectedProduct.price) : null;
+        const basePrice = vehiclePrice || (session?.criteria?.price ? parseFloat(session.criteria.price) : null);
+        
+        if (!isNaN(amount) && basePrice !== null && amount >= basePrice) {
+          setErrors({ 
+            ...errors, 
+            bidAmount: `Bid amount must be less than the vehicle price of $${basePrice.toLocaleString()}` 
+          });
+        }
       }
     }
   };
@@ -157,9 +206,16 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
                   value={productId}
                   onChange={(e) => {
                     setProductId(e.target.value);
+                    // Clear errors when product changes
+                    const newErrors = { ...errors };
                     if (errors.productId) {
-                      setErrors({ ...errors, productId: "" });
+                      delete newErrors.productId;
                     }
+                    // Clear bid amount error when product changes, as the price limit may have changed
+                    if (errors.bidAmount) {
+                      delete newErrors.bidAmount;
+                    }
+                    setErrors(newErrors);
                   }}
                   className={`w-full px-4 py-3 pr-10 border rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer ${
                     errors.productId 
@@ -309,8 +365,8 @@ const BidNowDialog = ({ isOpen, onClose, session, onSubmit }) => {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="bg-primary-600 hover:bg-primary-700 text-white"
+              disabled={isSubmitting || !isFormValid}
+              className="bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
