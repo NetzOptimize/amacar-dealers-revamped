@@ -495,6 +495,17 @@ export const getVehicleDetail = async (vehicleId) => {
   }
 };
 
+// Mark vehicle as sold
+export const markVehicleSold = async (vehicleId) => {
+  try {
+    const response = await reverseBidApi.post(`/dealer/vehicles/${vehicleId}/mark-sold`);
+    return response.data;
+  } catch (error) {
+    console.error('Error marking vehicle as sold:', error);
+    throw error;
+  }
+};
+
 // Get dealer's reverse bids (all bids by the logged-in dealer)
 export const getMyReverseBids = async (params = {}) => {
   try {

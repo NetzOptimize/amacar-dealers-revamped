@@ -307,6 +307,14 @@
   backface-visibility: hidden;
 }
 
+/* Hide DashboardLayout header when vehicle details sticky header is active */
+body.vehicle-details-sticky-active .vehicle-details-header {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-100%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
 @utility animate-scroll {
   animation: var(--animate-scroll);
 }

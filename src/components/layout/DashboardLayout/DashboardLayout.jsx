@@ -288,7 +288,7 @@ const DashboardLayout = ({ children }) => {
           } pt-16 lg:pt-0`}
       >
         {/* Desktop Header */}
-        <div className={`fixed top-0 right-0 z-40 hidden h-20 lg:block bg-white border-b border-neutral-200 shadow-md transition-all duration-300 ${isSidebarCollapsed ? 'left-16' : 'left-64'}`}>
+        <div className={`fixed top-0 right-0 z-40 hidden h-20 lg:block bg-white border-b border-neutral-200 shadow-md transition-all duration-300 vehicle-details-header ${isSidebarCollapsed ? 'left-16' : 'left-64'}`}>
           <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-white to-neutral-50">
             {/* Left Side: Search Bar - Hidden on dashboard and appointments pages */}
             {!shouldHideSearchBar() && (

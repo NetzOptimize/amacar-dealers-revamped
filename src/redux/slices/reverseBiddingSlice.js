@@ -130,6 +130,8 @@ const transformLeaderboard = (leaderboardData, currentDealerId) => {
                 dealerNameAnonymized: isCurrentDealer 
                     ? (bid.dealer_name || 'You')
                     : `Dealer ${String.fromCharCode(65 + index)}`,
+                productId: bid.product_id || null,
+                productTitle: bid.product_title || null,
                 price: parseFloat(bid.amount || bid.price || 0),
                 perks: perks,
                 rank: bid.position || index + 1,

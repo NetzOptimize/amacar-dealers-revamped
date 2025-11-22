@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -86,6 +87,7 @@ const SessionLeaderboardContainer = ({
   onBidNow,
   onWithdrawBid,
 }) => {
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.user);
   const columnHelper = createColumnHelper();
 
@@ -138,6 +140,34 @@ const SessionLeaderboardContainer = ({
             >
               {bid.dealerNameAnonymized}
             </span>
+          );
+        },
+      }),
+      columnHelper.accessor("productTitle", {
+        header: "Vehicle",
+        cell: (info) => {
+          const bid = info.row.original;
+          const productTitle = info.getValue();
+          const productId = bid.productId;
+          
+          if (!productId || !productTitle) {
+            return (
+              <span className="text-sm text-neutral-700">
+                {productTitle || "N/A"}
+              </span>
+            );
+          }
+          
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/vehicle-details/${productId}`);
+              }}
+              className="text-sm text-primary-600 hover:text-primary-700 hover:underline font-medium transition-colors cursor-pointer"
+            >
+              {productTitle}
+            </button>
           );
         },
       }),
