@@ -470,7 +470,7 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
                 sideOffset={4}
                 className="w-56 bg-white/90 backdrop-blur-xl border border-white/30 rounded-xl shadow-2xl p-1 overflow-hidden z-50"
               >
-                {hasUserBids && (
+                {hasUserBids ? (
                   <DropdownMenuItem
                     onClick={() => handleOpenBidDialog(session)}
                     disabled={!isActive}
@@ -478,6 +478,15 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
                   >
                     <TrendingDown className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
                     <span>Lower your bid</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => handleOpenBidDialog(session)}
+                    disabled={!isActive}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                  >
+                    <DollarSign className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                    <span>Bid Now</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
