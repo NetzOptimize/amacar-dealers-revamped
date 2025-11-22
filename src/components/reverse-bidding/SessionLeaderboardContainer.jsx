@@ -178,30 +178,33 @@ const SessionLeaderboardContainer = ({
           const isSessionActive = session?.status === "active";
           const alreadyBid = session?.alreadyBid === true;
 
-          // If already bid flag is true and this is the current dealer's bid, show "Your dealership"
-          if (alreadyBid && isCurrentDealer) {
+          // If this is the logged-in user's bid, show "Withdraw Bid" button
+          if (isCurrentDealer) {
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onWithdrawBid(bid.id)}
+                disabled={!isSessionActive}
+                className="flex items-center gap-2"
+              >
+                <TrendingDown className="w-4 h-4" />
+                Withdraw Bid
+              </Button>
+            );
+          }
+
+          // If already bid flag is true but this is not the logged-in user's bid,
+          // it means another dealership user from the same parent dealer has bid
+          if (alreadyBid) {
             return (
               <span className="text-sm text-orange-600 font-medium">Your dealership</span>
             );
           }
 
-          if (!isCurrentDealer) {
-            return (
-              <span className="text-sm text-neutral-400">Not your bid</span>
-            );
-          }
-
+          // Otherwise, show "Not your bid"
           return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onWithdrawBid(bid.id)}
-              disabled={!isSessionActive}
-              className="flex items-center gap-2"
-            >
-              <TrendingDown className="w-4 h-4" />
-              Withdraw Bid
-            </Button>
+            <span className="text-sm text-neutral-400">Not your bid</span>
           );
         },
       }),
