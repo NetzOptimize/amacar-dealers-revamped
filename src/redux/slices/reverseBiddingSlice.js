@@ -80,6 +80,7 @@ const transformSession = (apiSession, currentDealerId = null) => {
         leaderboard: transformLeaderboard(apiSession.leaderboard || [], currentDealerId), // Transform leaderboard with dealer info
         timeRemainingData: timeRemaining, // Store full time_remaining object for live countdown
         wonAt: apiSession.won_at || null, // Include won_at timestamp for won sessions
+        alreadyBid: apiSession.already_bid === true || apiSession.already_bid === 1, // Flag indicating if dealer/dealership user has already bid
     };
 };
 

@@ -18,6 +18,7 @@ import {
   User,
   Car,
   AlertCircle,
+  Ban,
 } from "lucide-react";
 import {
   useReactTable,
@@ -292,12 +293,17 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
             }
           }
           
+          const alreadyBid = session.alreadyBid === true;
+          
           return (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-blue-500" />
                 <span className="font-medium text-neutral-700">{totalBids}</span>
               </div>
+              {alreadyBid && (
+                <span className="text-xs text-orange-600 font-medium">Your dealership</span>
+              )}
               {bidStatus && (
                 <Badge 
                   variant={bidStatus === 'winning' ? 'default' : 'destructive'}
@@ -331,12 +337,23 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
           cell: (info) => {
             const session = info.row.original;
             const dealerBidCount = info.getValue() || 0;
+            const alreadyBid = session.alreadyBid === true;
             return (
-              <div className="flex items-center gap-1.5">
-                <TrendingDown className={`w-4 h-4 ${dealerBidCount > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
-                <span className={`font-medium ${dealerBidCount > 0 ? 'text-orange-600' : 'text-neutral-500'}`}>
-                  {dealerBidCount}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <TrendingDown className={`w-4 h-4 ${alreadyBid ? 'text-orange-500' : 'text-neutral-400'}`} />
+                  <span className={`font-medium ${alreadyBid ? 'text-orange-600' : 'text-neutral-500'}`}>
+                    {dealerBidCount}
+                  </span>
+                </div>
+                {alreadyBid && (
+                  <Badge 
+                    variant="default" 
+                    className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
+                  >
+                    Bid Placed
+                  </Badge>
+                )}
               </div>
             );
           },
@@ -445,12 +462,9 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
           }
           
           // For live sessions, show dropdown menu with three dots
-          // Check if user has bids (to show "Lower your bid" option)
-          const hasUserBids = currentDealerId && session.leaderboard && session.leaderboard.some((bid) => {
-            if (bid.isCurrentDealer) return true;
-            const bidDealerId = bid.dealerId || bid.dealer_id || bid.dealer_user_id;
-            return bidDealerId && String(bidDealerId) === String(currentDealerId);
-          });
+          // Use already_bid flag from API to determine if user has already bid
+          // This flag is true if the parent dealer or any dealership user with the same parent has bid
+          const hasUserBids = session.alreadyBid === true;
           
           return (
             <DropdownMenu>
@@ -472,12 +486,11 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
               >
                 {hasUserBids ? (
                   <DropdownMenuItem
-                    onClick={() => handleOpenBidDialog(session)}
-                    disabled={!isActive}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                    disabled={true}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-700 rounded-lg cursor-not-allowed opacity-70 transition-all duration-200 group"
                   >
-                    <TrendingDown className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
-                    <span>Lower your bid</span>
+                    <Ban className="w-4 h-4 text-red-500" />
+                    <span>Already bid</span>
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem

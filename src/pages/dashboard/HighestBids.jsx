@@ -19,7 +19,7 @@ const HighestBids = () => {
   const [highestBids, setHighestBids] = useState([]);
   const [pagination, setPagination] = useState({});
   const [error, setError] = useState(null);
-  const itemsPerPage = 4; // Show 4 vehicles per page
+  const itemsPerPage = 10; // Show 4 vehicles per page
 
   // Search context
   const { searchQuery, isSearching, debouncedSearchQuery, clearSearch } = useSearch();

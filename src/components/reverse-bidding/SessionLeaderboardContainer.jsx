@@ -176,6 +176,14 @@ const SessionLeaderboardContainer = ({
           const bid = info.row.original;
           const isCurrentDealer = bid.isCurrentDealer;
           const isSessionActive = session?.status === "active";
+          const alreadyBid = session?.alreadyBid === true;
+
+          // If already bid flag is true and this is the current dealer's bid, show "Your dealership"
+          if (alreadyBid && isCurrentDealer) {
+            return (
+              <span className="text-sm text-orange-600 font-medium">Your dealership</span>
+            );
+          }
 
           if (!isCurrentDealer) {
             return (
@@ -350,6 +358,9 @@ const SessionLeaderboardContainer = ({
                 <span className="text-sm font-medium text-neutral-700">
                   {session.totalBids || 0} {session.totalBids === 1 ? 'bid' : 'bids'}
                 </span>
+                {session.alreadyBid === true && (
+                  <span className="text-xs text-orange-600 font-medium mt-1">Your dealership</span>
+                )}
               </div>
             </div>
 
@@ -386,28 +397,6 @@ const SessionLeaderboardContainer = ({
         </div>
       </div>
 
-      {/* Action Bar - Show Bid Now if dealer hasn't placed a bid and session is active */}
-      {!currentDealerBid && isSessionActive && !session.isExpired && (
-        <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-primary-900 mb-1">
-                Ready to place your bid?
-              </h3>
-              <p className="text-sm text-primary-700">
-                Submit your best offer to compete in this reverse bidding
-                session.
-              </p>
-            </div>
-            <Button
-              onClick={onBidNow}
-              className="bg-primary-600 hover:bg-primary-700 text-white"
-            >
-              Bid Now
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Leaderboard Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
