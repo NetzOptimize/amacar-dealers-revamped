@@ -34,6 +34,11 @@ import LiveSessions from "./pages/dashboard/LiveSessions";
 import SessionLeaderboard from "./pages/dashboard/SessionLeaderboard";
 import WonSessions from "./pages/dashboard/WonSessions";
 import MyReverseBids from "./pages/dashboard/MyReverseBids";
+import AdminSessions from "./pages/dashboard/AdminSessions";
+import AdminSessionDetails from "./pages/dashboard/AdminSessionDetails";
+import AdminDealerStats from "./pages/dashboard/AdminDealerStats";
+import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
+import AdminSettings from "./pages/dashboard/AdminSettings";
 import PrivacyPolicy from "./pages/privacy-policy/PrivacyPolicy";
 import TermsOfService from "./pages/terms-conditions/TermsOfService";
 import DealershipAgreement from "./pages/dealership-agreement/DealershipAgreement";
@@ -300,6 +305,56 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <MyReverseBids />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/sessions"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminSessions />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/sessions/:id"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminSessionDetails />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/dealer-stats"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminDealerStats />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminAnalytics />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminSettings />
                   </DashboardLayout>
                 </PrivateRoute>
               }

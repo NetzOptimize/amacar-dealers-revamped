@@ -20,7 +20,10 @@ import {
   UserPlus2,
   TrendingDown,
   Gavel,
-  Trophy
+  Trophy,
+  Settings,
+  Activity,
+  BarChart3
 } from 'lucide-react';
 import { logoutUser } from '@/redux/slices/userSlice';
 import LogoutModal from '@/components/ui/LogoutUI/LogoutModal';
@@ -63,7 +66,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     canAccessInvitedDealerships,
     canAccessSalesManagers,
     canAccessPartnerDealers,
-    canAccessSubscriptionCancellationRequest
+    canAccessSubscriptionCancellationRequest,
+    canAccessAdminReverseBidding
   } = permissions;
 
   // Check if user should show warning modal and get warning type
@@ -127,6 +131,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     // Conditionally include DealerShips based on user role
     { name: 'Reports', href: '/reports', icon: BarChart },
+
+    // Admin Reverse Bidding Pages
+    ...(canAccessAdminReverseBidding ? [
+      { name: 'Admin Sessions', href: '/admin/sessions', icon: Activity },
+      { name: 'Dealer Statistics', href: '/admin/dealer-stats', icon: BarChart3 },
+      { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+      { name: 'System Settings', href: '/admin/settings', icon: Settings }
+    ] : []),
 
   ];
 

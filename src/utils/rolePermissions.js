@@ -157,6 +157,56 @@ export const canAccessSubscriptionCancellationRequest = (userRole) => {
   );
 };
 
+// ===== ADMIN REVERSE BIDDING ACCESS CONTROL FUNCTIONS =====
+
+/**
+ * Check if user can access admin reverse bidding pages
+ * @param {string} userRole - The user's role
+ * @returns {boolean} - Whether user can access admin reverse bidding pages
+ */
+export const canAccessAdminReverseBidding = (userRole) => {
+  return (
+    userRole === USER_ROLES.ADMINISTRATOR ||
+    userRole === USER_ROLES.SALES_MANAGER
+  );
+};
+
+/**
+ * Check if user can access admin sessions management
+ * @param {string} userRole - The user's role
+ * @returns {boolean} - Whether user can access admin sessions
+ */
+export const canAccessAdminSessions = (userRole) => {
+  return canAccessAdminReverseBidding(userRole);
+};
+
+/**
+ * Check if user can access admin dealer statistics
+ * @param {string} userRole - The user's role
+ * @returns {boolean} - Whether user can access admin dealer stats
+ */
+export const canAccessAdminDealerStats = (userRole) => {
+  return canAccessAdminReverseBidding(userRole);
+};
+
+/**
+ * Check if user can access admin analytics
+ * @param {string} userRole - The user's role
+ * @returns {boolean} - Whether user can access admin analytics
+ */
+export const canAccessAdminAnalytics = (userRole) => {
+  return canAccessAdminReverseBidding(userRole);
+};
+
+/**
+ * Check if user can access admin settings
+ * @param {string} userRole - The user's role
+ * @returns {boolean} - Whether user can access admin settings
+ */
+export const canAccessAdminSettings = (userRole) => {
+  return canAccessAdminReverseBidding(userRole);
+};
+
 // ===== REPORT API ACCESS CONTROL FUNCTIONS =====
 
 /**
@@ -396,6 +446,13 @@ export const getUserPermissions = (userRole, user = null) => {
     canAccessSubscriptionRevenueReport: canAccessSubscriptionRevenueReport(userRole),
     canAccessSystemPerformanceReport: canAccessSystemPerformanceReport(userRole),
     canAccessFeatureUsageReport: canAccessFeatureUsageReport(userRole),
+    
+    // Admin reverse bidding permissions
+    canAccessAdminReverseBidding: canAccessAdminReverseBidding(userRole),
+    canAccessAdminSessions: canAccessAdminSessions(userRole),
+    canAccessAdminDealerStats: canAccessAdminDealerStats(userRole),
+    canAccessAdminAnalytics: canAccessAdminAnalytics(userRole),
+    canAccessAdminSettings: canAccessAdminSettings(userRole),
   };
 };
 
@@ -455,6 +512,13 @@ export const ROUTE_PERMISSIONS = {
 
   // Partner dealers routes - only for dealers
   '/partner-dealers': [USER_ROLES.DEALER],
+
+  // Admin reverse bidding routes - only for admins and sales managers
+  '/admin/sessions': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
+  '/admin/sessions/:id': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
+  '/admin/dealer-stats': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
+  '/admin/analytics': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
+  '/admin/settings': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
 };
 
 /**

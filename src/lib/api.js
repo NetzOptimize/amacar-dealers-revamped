@@ -594,4 +594,127 @@ export const getDealerBidHistory = async (params = {}) => {
   }
 };
 
+// ===== ADMIN API FUNCTIONS =====
+// These endpoints require admin or sales_manager role
+
+// Get all sessions (admin)
+export const getAdminSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin sessions:', error);
+    throw error;
+  }
+};
+
+// Get session details (admin)
+export const getAdminSessionDetails = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/admin/sessions/${sessionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin session details:', error);
+    throw error;
+  }
+};
+
+// Get session bids (admin)
+export const getAdminSessionBids = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/admin/sessions/${sessionId}/bids`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin session bids:', error);
+    throw error;
+  }
+};
+
+// Get dealer statistics (admin)
+export const getAdminDealerStats = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/dealers', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin dealer stats:', error);
+    throw error;
+  }
+};
+
+// Get analytics (admin)
+export const getAdminAnalytics = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/analytics', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin analytics:', error);
+    throw error;
+  }
+};
+
+// Export data (admin)
+export const exportAdminData = async (type, format = 'csv', params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/export', {
+      params: { type, format, ...params },
+      responseType: format === 'csv' ? 'blob' : 'json',
+      headers: format === 'csv' ? { 'Accept': 'text/csv' } : {}
+    });
+    
+    // If CSV, return blob directly; if JSON, return data
+    if (format === 'csv') {
+      return response.data; // This is already a blob
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error exporting admin data:', error);
+    throw error;
+  }
+};
+
+// Get settings (admin)
+export const getAdminSettings = async () => {
+  try {
+    const response = await reverseBidApi.get('/admin/settings');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin settings:', error);
+    throw error;
+  }
+};
+
+// Update settings (admin)
+export const updateAdminSettings = async (settings) => {
+  try {
+    const response = await reverseBidApi.post('/admin/settings', { settings });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    throw error;
+  }
+};
+
+// Get real-time statistics (admin)
+export const getAdminRealtimeStats = async () => {
+  try {
+    const response = await reverseBidApi.get('/admin/realtime-stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin realtime stats:', error);
+    throw error;
+  }
+};
+
+// Close session manually (admin)
+export const closeAdminSession = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.post(`/admin/sessions/${sessionId}/close`);
+    return response.data;
+  } catch (error) {
+    console.error('Error closing admin session:', error);
+    throw error;
+  }
+};
+
 export default api;
