@@ -7,7 +7,9 @@ import {
   Save, 
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 const AdminSettings = () => {
@@ -17,6 +19,9 @@ const AdminSettings = () => {
   const [error, setError] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalSettings, setOriginalSettings] = useState({});
+  const [expandedSections, setExpandedSections] = useState({
+    matching: true,
+  });
 
   useEffect(() => {
     fetchSettings();
@@ -47,9 +52,22 @@ const AdminSettings = () => {
     }
   };
 
-  const handleSettingChange = (key, value) => {
+  const handleSettingChange = (key, value, nestedKey = null) => {
     setSettings(prev => {
-      const newSettings = { ...prev, [key]: value };
+      let newSettings;
+      if (nestedKey) {
+        // Handle nested object updates
+        newSettings = {
+          ...prev,
+          [key]: {
+            ...prev[key],
+            [nestedKey]: value
+          }
+        };
+      } else {
+        // Handle top-level settings
+        newSettings = { ...prev, [key]: value };
+      }
       setHasChanges(JSON.stringify(newSettings) !== JSON.stringify(originalSettings));
       return newSettings;
     });
@@ -85,40 +103,27 @@ const AdminSettings = () => {
     toast.info("Settings reset to original values");
   };
 
-  const renderSettingField = (key, label, type = "text", placeholder = "", options = []) => {
-    const value = settings[key] ?? "";
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
+  const renderField = (label, value, onChange, type = "text", placeholder = "", min = null, max = null) => {
     return (
-      <div className="mb-6">
+      <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {label}
         </label>
-        {type === "textarea" ? (
-          <textarea
-            value={value}
-            onChange={(e) => handleSettingChange(key, e.target.value)}
-            placeholder={placeholder}
-            rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        ) : type === "select" ? (
-          <select
-            value={value}
-            onChange={(e) => handleSettingChange(key, e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        ) : type === "number" ? (
+        {type === "number" ? (
           <input
             type="number"
-            value={value}
-            onChange={(e) => handleSettingChange(key, parseFloat(e.target.value) || 0)}
+            value={value ?? ""}
+            onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
             placeholder={placeholder}
+            min={min}
+            max={max}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         ) : type === "checkbox" ? (
@@ -126,16 +131,27 @@ const AdminSettings = () => {
             <input
               type="checkbox"
               checked={value === true || value === "true" || value === 1}
-              onChange={(e) => handleSettingChange(key, e.target.checked)}
+              onChange={(e) => onChange(e.target.checked)}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <label className="ml-2 text-sm text-gray-600">{placeholder}</label>
+            <label className="ml-2 text-sm text-gray-600">{placeholder || label}</label>
           </div>
+        ) : type === "select" ? (
+          <select
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {placeholder && <option value="">{placeholder}</option>}
+            <option value="sse">SSE (Server-Sent Events)</option>
+            <option value="pusher">Pusher</option>
+            <option value="websocket">WebSocket</option>
+          </select>
         ) : (
           <input
             type={type}
-            value={value}
-            onChange={(e) => handleSettingChange(key, e.target.value)}
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -143,6 +159,10 @@ const AdminSettings = () => {
       </div>
     );
   };
+
+  // Filter out nested objects from main settings
+  const nestedKeys = ['matching_tolerance', 'notification_settings', 'realtime_settings', 'certificate_settings'];
+  const mainSettings = Object.entries(settings).filter(([key]) => !nestedKeys.includes(key));
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -206,7 +226,7 @@ const AdminSettings = () => {
           </motion.div>
         )}
 
-        {/* Settings Form */}
+        {/* General Settings */}
         <motion.div
           className="bg-white rounded-lg shadow-sm p-6 mb-6"
           variants={itemVariants}
@@ -215,47 +235,100 @@ const AdminSettings = () => {
             General Settings
           </h2>
 
-          {/* Dynamic settings rendering */}
-          {Object.keys(settings).length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No settings available</p>
-              <p className="text-sm mt-2">
-                Settings will be displayed here once they are configured
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(settings).map(([key, value]) => {
-                // Determine field type based on key and value
-                let fieldType = "text";
-                let label = key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
-                let placeholder = "";
-
-                if (typeof value === "boolean" || value === "true" || value === "false") {
-                  fieldType = "checkbox";
-                  placeholder = `Enable ${label}`;
-                } else if (typeof value === "number") {
-                  fieldType = "number";
-                } else if (key.includes("duration") || key.includes("timeout") || key.includes("interval")) {
-                  fieldType = "number";
-                  placeholder = "Enter time in seconds";
-                } else if (key.includes("email") || key.includes("mail")) {
-                  fieldType = "email";
-                } else if (key.includes("url") || key.includes("link")) {
-                  fieldType = "url";
-                } else if (key.includes("description") || key.includes("message") || key.includes("note")) {
-                  fieldType = "textarea";
-                }
-
+          <div className="space-y-4">
+            {mainSettings.map(([key, value]) => {
+              const label = key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+              
+              if (typeof value === "boolean") {
                 return (
                   <div key={key}>
-                    {renderSettingField(key, label, fieldType, placeholder)}
+                    {renderField(
+                      label,
+                      value,
+                      (val) => handleSettingChange(key, val),
+                      "checkbox",
+                      `Enable ${label}`
+                    )}
                   </div>
                 );
-              })}
-            </div>
-          )}
+              } else if (typeof value === "number") {
+                return (
+                  <div key={key}>
+                    {renderField(
+                      label,
+                      value,
+                      (val) => handleSettingChange(key, val),
+                      "number",
+                      `Enter ${label.toLowerCase()}`
+                    )}
+                  </div>
+                );
+              } else if (typeof value === "string") {
+                return (
+                  <div key={key}>
+                    {renderField(
+                      label,
+                      value,
+                      (val) => handleSettingChange(key, val),
+                      "text",
+                      `Enter ${label.toLowerCase()}`
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
         </motion.div>
+
+        {/* Matching Tolerance Section */}
+        {settings.matching_tolerance && (
+          <motion.div
+            className="bg-white rounded-lg shadow-sm p-6 mb-6"
+            variants={itemVariants}
+          >
+            <button
+              onClick={() => toggleSection('matching')}
+              className="w-full flex items-center justify-between text-xl font-semibold text-gray-900 mb-4"
+            >
+              <span>Vehicle Matching Tolerance</span>
+              {expandedSections.matching ? (
+                <ChevronUp className="h-5 w-5" />
+              ) : (
+                <ChevronDown className="h-5 w-5" />
+              )}
+            </button>
+            
+            {expandedSections.matching && (
+              <div className="space-y-4">
+                {renderField(
+                  "Year Tolerance",
+                  settings.matching_tolerance?.year,
+                  (val) => handleSettingChange('matching_tolerance', val, 'year'),
+                  "number",
+                  "Enter year tolerance",
+                  0
+                )}
+                {renderField(
+                  "Price Tolerance ($)",
+                  settings.matching_tolerance?.price,
+                  (val) => handleSettingChange('matching_tolerance', val, 'price'),
+                  "number",
+                  "Enter price tolerance",
+                  0
+                )}
+                {renderField(
+                  "Mileage Tolerance",
+                  settings.matching_tolerance?.mileage,
+                  (val) => handleSettingChange('matching_tolerance', val, 'mileage'),
+                  "number",
+                  "Enter mileage tolerance",
+                  0
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Action Buttons */}
         <motion.div
@@ -299,4 +372,3 @@ const AdminSettings = () => {
 };
 
 export default AdminSettings;
-
