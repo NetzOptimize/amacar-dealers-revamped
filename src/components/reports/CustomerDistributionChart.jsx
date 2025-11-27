@@ -1,174 +1,151 @@
-import { TrendingUp } from "lucide-react"
-import { Pie, PieChart, Sector } from "recharts"
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
+import { Pie, PieChart, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Users, UserPlus, Repeat } from "lucide-react";
+import { format } from "date-fns";
+import { getCustomerEngagementReport } from "@/lib/api";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import { getCustomerEngagementReport } from "@/lib/api"
+const COLORS = {
+  new: "#10B981",
+  repeat: "#4F46E5",
+};
 
-export const description = "Customer activity distribution"
-
-const chartConfig = {
-  count: {
-    label: "Count",
-  },
-  new_customers: {
-    label: "New Customers",
-    color: "var(--chart-1)",
-  },
-  repeat_customers: {
-    label: "Repeat Customers",
-    color: "var(--chart-2)",
-  },
-  completed_appointments: {
-    label: "Completed Appointments",
-    color: "var(--chart-3)",
-  },
-  pending_appointments: {
-    label: "Pending Appointments",
-    color: "var(--chart-4)",
-  },
-}
-
-export default function CustomerDistributionChart({ startDate, endDate }) {
+export default function CustomerDistributionChart({ startDate, endDate, cachedData, isLoading: externalLoading }) {
   const [chartData, setChartData] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCustomersData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Use default date range if not provided
-        const dateFrom = startDate || '2024-01-01';
-        const dateTo = endDate || '2024-12-31';
-        
-        const response = await getCustomerEngagementReport(dateFrom, dateTo);
-        
-        if (response.success && response.data) {
-          const data = response.data;
-          const summary = response.summary;
-          
-          // Calculate totals from the data array
-          const totalNewCustomers = data.reduce((sum, item) => sum + (item.new_customers || 0), 0);
-          const totalRepeatCustomers = data.reduce((sum, item) => sum + ((item.total_customers || 0) - (item.new_customers || 0)), 0);
-          const totalAppointments = data.reduce((sum, item) => sum + (item.total_appointments || 0), 0);
-          const completedAppointments = data.reduce((sum, item) => sum + (item.completed_appointments || 0), 0);
-          
-          // Create pie chart data from the data array
-          const transformedData = [
-            { 
-              category: "New Customers", 
-              count: totalNewCustomers, 
-              fill: "var(--chart-1)" 
-            },
-            { 
-              category: "Repeat Customers", 
-              count: totalRepeatCustomers, 
-              fill: "var(--chart-2)" 
-            },
-            { 
-              category: "Completed Appointments", 
-              count: completedAppointments, 
-              fill: "var(--chart-3)" 
-            },
-            { 
-              category: "Pending Appointments", 
-              count: totalAppointments - completedAppointments, 
-              fill: "var(--chart-4)" 
-            }
-          ];
-          
-          setChartData(transformedData);
-        }
-      } catch (error) {
-        console.error('Error fetching customers data:', error);
-        // Fallback data
+    if (cachedData) {
+      setSummary(cachedData.summary || {});
+      
+      const summaryData = cachedData.summary || {};
+      const newCustomers = summaryData.new_customers || 0;
+      const repeatCustomers = summaryData.repeat_customers || 0;
+      
+      if (newCustomers > 0 || repeatCustomers > 0) {
         setChartData([
-          { category: "New Customers", count: 0, fill: "var(--chart-1)" },
-          { category: "Repeat Customers", count: 0, fill: "var(--chart-2)" },
-          { category: "Completed Appointments", count: 0, fill: "var(--chart-3)" },
-          { category: "Pending Appointments", count: 0, fill: "var(--chart-4)" },
+          { name: "New Customers", value: newCustomers, color: COLORS.new },
+          { name: "Repeat Customers", value: repeatCustomers, color: COLORS.repeat },
         ]);
-      } finally {
-        setIsLoading(false);
+      } else {
+        setChartData([]);
       }
-    };
+      setIsLoading(false);
+    } else if (!externalLoading) {
+      const fetchCustomersData = async () => {
+        try {
+          setIsLoading(true);
+          const dateFrom = startDate || format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+          const dateTo = endDate || format(new Date(), "yyyy-MM-dd");
+          
+          const response = await getCustomerEngagementReport(dateFrom, dateTo);
+          
+          if (response.success) {
+            setSummary(response.summary || {});
+            
+            const summaryData = response.summary || {};
+            const newCustomers = summaryData.new_customers || 0;
+            const repeatCustomers = summaryData.repeat_customers || 0;
+            
+            if (newCustomers > 0 || repeatCustomers > 0) {
+              setChartData([
+                { name: "New Customers", value: newCustomers, color: COLORS.new },
+                { name: "Repeat Customers", value: repeatCustomers, color: COLORS.repeat },
+              ]);
+            } else {
+              setChartData([]);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching customer distribution data:', error);
+          setChartData([]);
+          setSummary(null);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-    fetchCustomersData();
-  }, [startDate, endDate]);
-  if (isLoading) {
+      fetchCustomersData();
+    }
+  }, [cachedData, startDate, endDate, externalLoading]);
+  
+  const finalLoading = isLoading || externalLoading;
+
+  if (finalLoading) {
     return (
-      <Card className="flex flex-col h-full">
-        <CardHeader className="items-center pb-0">
-          <CardTitle>Customer Distribution</CardTitle>
-          <CardDescription>Loading customer data...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <div className="h-[400px] bg-gray-100 animate-pulse rounded"></div>
-        </CardContent>
-      </Card>
+      <div className="h-[300px] bg-gray-50 rounded-lg animate-pulse flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-gray-500">Loading customer data...</p>
+        </div>
+      </div>
     );
   }
 
+  const hasData = chartData.length > 0 && chartData.some(item => item.value > 0);
+  const summaryData = summary || {};
+
   return (
-    <Card className="flex flex-col h-full">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Customer Distribution</CardTitle>
-        <CardDescription>
-          {startDate && endDate 
-            ? `${startDate} - ${endDate}` 
-            : 'Customer activity breakdown'
-          }
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[400px]"
-        >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-              formatter={(value, name) => [value, name]}
-            />
-            <Pie
-              data={chartData}
-              dataKey="count"
-              nameKey="category"
-              innerRadius={60}
-              strokeWidth={5}
-              activeIndex={0}
-              activeShape={({
-                outerRadius = 0,
-                ...props
-              }) => (
-                <Sector {...props} outerRadius={outerRadius + 10} />
-              )}
-            />
-          </PieChart>
-        </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 leading-none font-medium">
-          Customer activity distribution <TrendingUp className="h-4 w-4" />
+    <div className="space-y-4">
+      {/* Summary Metrics */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-green-700 uppercase tracking-wide">New</p>
+            <UserPlus className="h-4 w-4 text-green-600" />
+          </div>
+          <p className="text-2xl font-bold text-green-900">{summaryData.new_customers || 0}</p>
         </div>
-        <div className="text-muted-foreground leading-none">
-          Showing customer activity and appointment distribution
+        
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Repeat</p>
+            <Repeat className="h-4 w-4 text-blue-600" />
+          </div>
+          <p className="text-2xl font-bold text-blue-900">{summaryData.repeat_customers || 0}</p>
         </div>
-      </CardFooter>
-    </Card>
-  )
+      </div>
+
+      {/* Pie Chart */}
+      {hasData ? (
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4 text-center">Customer Distribution</h4>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent, value }) => 
+                  `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                }
+                outerRadius={90}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  padding: '8px',
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="bg-gray-50 rounded-lg p-12 text-center border border-gray-200">
+          <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-600 mb-1">No customer distribution data</p>
+          <p className="text-xs text-gray-500">Try adjusting your date range</p>
+        </div>
+      )}
+    </div>
+  );
 }
