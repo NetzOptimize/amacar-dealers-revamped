@@ -74,17 +74,12 @@ const PaymentForm = ({
         invitedByManagerId: invitationData?.sales_manager_id
       };
 
-      console.log("Dispatching registration with data:", registrationData);
-
       const result = await dispatch(registerUser(registrationData)).unwrap();
-
-      console.log("Registration completed successfully:", result);
       setRegistrationSuccess(true);
       updateFormData("registrationCompleted", true);
       updateFormData("registrationData", result);
 
     } catch (error) {
-      console.error("Registration completion error:", error);
       setRegistrationError(error || "Failed to complete registration. Please contact support.");
     } finally {
       setIsCompletingRegistration(false);
@@ -95,17 +90,12 @@ const PaymentForm = ({
   const handlePaymentSubmit = async (event) => {
     event.preventDefault();
     if (!stripe || !elements || !clientSecret) {
-      console.log("in if of the handle payment submit");
       setPaymentError("Payment system not ready. Please try again.");
       return;
     }
 
     setIsProcessing(true);
     setPaymentError("");
-    console.log("Inside the handle payment submit");
-    console.log("client secret:", clientSecret);
-    console.log("stripe object:", stripe);
-    console.log("elements object:", elements);
 
     try {
       // Ensure we have valid elements before proceeding
@@ -122,7 +112,6 @@ const PaymentForm = ({
       });
 
       if (error) {
-        console.error("Stripe setup error:", error);
         if (
           error.type === "invalid_request_error" &&
           error.param === "client_secret"
@@ -140,19 +129,14 @@ const PaymentForm = ({
         updateFormData("paymentCompleted", true);
         updateFormData("setupIntentId", setupIntent.id);
 
-        console.log("SetupIntent response:", setupIntent);
-
         // Get customer ID from the setup intent response or form data
         // The customer ID should be available in the original API response
         const customerId = formData.customerId || setupIntent.payment_method?.customer;
-
-        console.log("Customer ID for registration:", customerId);
 
         // Complete registration after successful payment setup
         await completeRegistration(setupIntent.id, customerId);
       }
     } catch (error) {
-      console.error("Payment submission error:", error);
       setPaymentError("An unexpected error occurred. Please try again.");
     } finally {
       setIsProcessing(false);
@@ -176,11 +160,6 @@ const PaymentForm = ({
     visible: { opacity: 1, y: 0 },
   };
 
-  useEffect(() => {
-    setTimeout(() => {
-      console.log("stripe key", import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-    }, 5000);
-  }, []);
   return (
     <motion.div
       variants={containerVariants}
@@ -455,70 +434,38 @@ const PaymentSetup = ({ formData, updateFormData, errors, isInvitedUser, invitat
           dealership_name: dealershipName,
         });
 
-        console.log("Setup intent response:", response.data);
-        console.log(
-          "Current publishable key:",
-          import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-        );
-        console.log(
-          "Using publishable key:",
-          import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-        );
-
         if (response.data.client_secret) {
-          console.log("Setting client secret:", response.data.client_secret);
-          console.log(
-            "Client secret format check:",
-            response.data.client_secret.startsWith("seti_") &&
-            response.data.client_secret.includes("_secret_")
-          );
-
           // Store customer ID from the API response
           if (response.data.customer_id) {
             updateFormData("customerId", response.data.customer_id);
-            console.log("Customer ID stored:", response.data.customer_id);
           }
 
-          // Extract account ID from client secret for debugging
-          const clientSecretParts = response.data.client_secret.split("_");
-          const accountId = clientSecretParts[1];
-          console.log("Account ID from client secret:", accountId);
+          // Get publishable key from environment
+          const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+          
+          if (!publishableKey) {
+            setPaymentError(
+              "Payment configuration error. Please contact support."
+            );
+            return;
+          }
 
-          // Extract account ID from publishable key for debugging
-          const pubKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-          // const pubKey = "pk_test_511SFyPQDUuzIKcsNT7wrDuDxd";
-          const pubKeyParts = pubKey.split("_");
-          const pubKeyAccountId = pubKeyParts[1];
-          console.log("Account ID from publishable key:", pubKeyAccountId);
-
-          console.log("Account IDs match:", accountId === pubKeyAccountId);
-
-          // Create the correct publishable key based on the account ID from client secret
-          // const correctPublishableKey = `pk_test_51${accountId}`;
-          const correctPublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-          console.log(
-            "Correct publishable key should be:",
-            correctPublishableKey
-          );
-
-          // Create Stripe instance with the correct publishable key
+          // Create Stripe instance with the publishable key
           try {
-            const stripe = await loadStripe(correctPublishableKey);
-            console.log("Stripe instance created with correct key");
+            const stripe = await loadStripe(publishableKey);
+            if (!stripe) {
+              throw new Error("Failed to load Stripe instance");
+            }
             setStripeInstance(stripe);
             setClientSecret(response.data.client_secret);
             setIsStripeReady(true);
           } catch (stripeError) {
-            console.error("Stripe loading error:", stripeError);
             setPaymentError(
               "Failed to initialize payment system. Please try again."
             );
           }
-        } else {
-          console.error("No client_secret in response:", response.data);
         }
       } catch (error) {
-        console.error("Error creating setup intent:", error);
         setPaymentError(
           "Failed to initialize payment setup. Please try again."
         );
