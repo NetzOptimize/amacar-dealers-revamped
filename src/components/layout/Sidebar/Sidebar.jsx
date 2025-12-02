@@ -23,7 +23,8 @@ import {
   Trophy,
   Settings,
   Activity,
-  BarChart3
+  BarChart3,
+  Warehouse
 } from 'lucide-react';
 import { logoutUser } from '@/redux/slices/userSlice';
 import LogoutModal from '@/components/ui/LogoutUI/LogoutModal';
@@ -122,6 +123,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     { name: 'Highest Bids', href: '/highest-bids', icon: ArrowUp },
     { name: 'Active Customers', href: '/new-customers', icon: UserPlus },
     // { name: 'Active customers', href: '/active-customers', icon: Users },
+    ...(userRole === 'dealer' ? [{ name: 'My inventory', href: '/inventory', icon: Warehouse }] : []),
     ...(canAccessDealershipUsers ? [{ name: 'Dealership users', href: '/dealership-users', icon: UserPlus2 }] : []),
     ...(canAccessDealerships ? [{ name: 'DealerShips', href: '/dealerships', icon: Home }] : []),
     ...(canAccessInvitedDealerships ? [{ name: 'Invited Dealerships', href: '/invited-dealerships', icon: UserPlus }] : []),
@@ -184,7 +186,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // 4. Not a manual toggle
     if (isMobile && !isCollapsed && prevPathRef.current !== location.pathname && !isManualToggle) {
       // Check if current path is a dashboard page
-      const dashboardPages = ['/dashboard', '/live-sessions', '/live-auctions', '/reverse-bidding', '/won-sessions', '/my-reverse-bids', '/won-auctions', '/new-customers', '/active-customers', '/my-bids', '/appointments', '/highest-bids', '/dealership-users', '/partner-dealers', '/reports', '/profile', '/sales-managers', '/subscription-cancellation-requests', '/dealerships', '/invited-dealerships'];
+      const dashboardPages = ['/dashboard', '/live-sessions', '/live-auctions', '/reverse-bidding', '/won-sessions', '/my-reverse-bids', '/won-auctions', '/new-customers', '/active-customers', '/inventory', '/my-bids', '/appointments', '/highest-bids', '/dealership-users', '/partner-dealers', '/reports', '/profile', '/sales-managers', '/subscription-cancellation-requests', '/dealerships', '/invited-dealerships'];
       const isDashboardPage = dashboardPages.some(page => location.pathname.startsWith(page));
 
       if (isDashboardPage) {

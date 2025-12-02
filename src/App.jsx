@@ -34,6 +34,7 @@ import LiveSessions from "./pages/dashboard/LiveSessions";
 import SessionLeaderboard from "./pages/dashboard/SessionLeaderboard";
 import WonSessions from "./pages/dashboard/WonSessions";
 import MyReverseBids from "./pages/dashboard/MyReverseBids";
+import Inventory from "./pages/dashboard/Inventory";
 import AdminSessions from "./pages/dashboard/AdminSessions";
 import AdminSessionDetails from "./pages/dashboard/AdminSessionDetails";
 import AdminDealerStats from "./pages/dashboard/AdminDealerStats";
@@ -195,6 +196,16 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <ActiveCustomers />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <Inventory />
                   </DashboardLayout>
                 </PrivateRoute>
               }

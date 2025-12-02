@@ -473,6 +473,17 @@ export const getDealerSessions = async (params = {}) => {
   }
 };
 
+// Get dealer inventory (all vehicles owned by dealer)
+export const getDealerInventory = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/inventory', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer inventory:', error);
+    throw error;
+  }
+};
+
 // Get won sessions (sessions won by the logged-in dealer)
 export const getWonSessions = async (params = {}) => {
   try {
