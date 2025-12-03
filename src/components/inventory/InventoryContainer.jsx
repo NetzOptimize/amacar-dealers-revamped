@@ -7,6 +7,7 @@ import {
   MapPin,
   CheckCircle,
   XCircle,
+  PackageSearch,
 } from "lucide-react";
 import {
   Table,
@@ -32,6 +33,7 @@ const InventoryContainer = ({
   totalPages = 1,
   totalCount = 0,
   pagination = null,
+  searchQuery = '',
   onPageChange = () => {},
   onViewVehicle = () => {},
 }) => {
@@ -150,13 +152,8 @@ const InventoryContainer = ({
   };
 
   return (
-    <motion.div
-      className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-4"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-4">
+      {/* Header - Always visible */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -172,13 +169,23 @@ const InventoryContainer = ({
           </div>
         </div>
         <div className="text-sm text-neutral-500">
-          Showing {startIndex}-{endIndex} of {totalItems} vehicles
+          {totalItems > 0 ? (
+            `Showing ${startIndex}-${endIndex} of ${totalItems} vehicles`
+          ) : (
+            'No vehicles found'
+          )}
         </div>
       </div>
 
       {/* Desktop Table Layout */}
       {isDesktop && (
-        <div className="overflow-x-auto">
+        <motion.div 
+          className="overflow-x-auto"
+          key={`table-${vehicles.length}-${searchQuery}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
         <Table className="w-full min-w-[1400px]">
           <TableHeader>
             <TableRow className="border-neutral-200 hover:bg-transparent">
@@ -215,7 +222,34 @@ const InventoryContainer = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vehicles.map((vehicle, index) => {
+            {vehicles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-12 text-center">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col items-center justify-center"
+                  >
+                    <PackageSearch className="w-16 h-16 text-neutral-300 mb-4" />
+                    <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+                      {searchQuery ? 'No vehicles found' : 'No vehicles in inventory'}
+                    </h3>
+                    <p className="text-sm text-neutral-500 max-w-md">
+                      {searchQuery ? (
+                        <>
+                          No vehicles match your search for "<span className="font-medium">{searchQuery}</span>". 
+                          Try adjusting your search terms to see more results.
+                        </>
+                      ) : (
+                        'You don\'t have any vehicles in your inventory yet. Add vehicles to get started.'
+                      )}
+                    </p>
+                  </motion.div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              vehicles.map((vehicle, index) => {
               const primaryImage = getPrimaryImage(vehicle);
               const vehicleTitle = getVehicleTitle(vehicle);
               
@@ -338,16 +372,46 @@ const InventoryContainer = ({
                   </TableCell>
                 </TableRow>
               );
-            })}
+            })
+            )}
           </TableBody>
         </Table>
-        </div>
+        </motion.div>
       )}
 
       {/* Mobile Card Layout */}
       {!isDesktop && (
-        <div className="space-y-4">
-        {vehicles.map((vehicle, index) => {
+        <motion.div 
+          className="space-y-4"
+          key={`mobile-${vehicles.length}-${searchQuery}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+        {vehicles.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-neutral-50 rounded-xl p-8 text-center border border-neutral-200"
+          >
+            <PackageSearch className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+              {searchQuery ? 'No vehicles found' : 'No vehicles in inventory'}
+            </h3>
+            <p className="text-sm text-neutral-500 max-w-md mx-auto">
+              {searchQuery ? (
+                <>
+                  No vehicles match your search for "<span className="font-medium">{searchQuery}</span>". 
+                  Try adjusting your search terms to see more results.
+                </>
+              ) : (
+                'You don\'t have any vehicles in your inventory yet. Add vehicles to get started.'
+              )}
+            </p>
+          </motion.div>
+        ) : (
+          vehicles.map((vehicle, index) => {
           const primaryImage = getPrimaryImage(vehicle);
           const vehicleTitle = getVehicleTitle(vehicle);
           
@@ -476,10 +540,11 @@ const InventoryContainer = ({
               </div>
             </motion.div>
           );
-        })}
-        </div>
+        })
+        )}
+        </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 };
 

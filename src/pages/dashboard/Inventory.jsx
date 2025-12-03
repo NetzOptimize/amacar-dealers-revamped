@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Search, X } from "lucide-react";
 import Pagination from "@/components/common/Pagination/Pagination";
 import InventoryContainer from "@/components/inventory/InventoryContainer";
 import InventorySort from "@/components/sorts/InventorySort";
@@ -8,6 +9,7 @@ import { sortInventory } from "@/utils/inventorySorting";
 import InventorySkeleton from "@/components/skeletons/Inventory/InventorySkeleton";
 import { getDealerInventory } from "@/lib/api";
 import toast from "react-hot-toast";
+import useDebounce from "@/hooks/useDebounce";
 
 const Inventory = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const Inventory = () => {
   const [isSorting, setIsSorting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [vehicles, setVehicles] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -28,16 +32,26 @@ const Inventory = () => {
   const [error, setError] = useState(null);
   const itemsPerPage = 20;
 
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   // Fetch inventory from API
-  const fetchInventory = async (page = 1, perPage = 20) => {
+  const fetchInventory = async (page = 1, perPage = 20, search = '') => {
     try {
       setIsLoading(true);
+      setIsSearching(!!search);
       setError(null);
       
-      const response = await getDealerInventory({
+      const params = {
         page,
         per_page: perPage
-      });
+      };
+      
+      if (search && search.trim() !== '') {
+        params.search = search.trim();
+      }
+      
+      const response = await getDealerInventory(params);
 
       if (response.success) {
         setVehicles(response.data.data || []);
@@ -58,13 +72,14 @@ const Inventory = () => {
       toast.error('Failed to load inventory. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
-  // Fetch data on component mount and when page changes
+  // Fetch data on component mount and when page or search changes
   useEffect(() => {
-    fetchInventory(currentPage, itemsPerPage);
-  }, [currentPage]);
+    fetchInventory(currentPage, itemsPerPage, debouncedSearchQuery);
+  }, [currentPage, debouncedSearchQuery]);
 
   // Animation variants
   const pageVariants = {
@@ -168,6 +183,11 @@ const Inventory = () => {
     }
   };
 
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   return (
     <motion.div
       className="min-h-screen bg-gray-50 pt-10 md:pt-24 px-4 md:px-6"
@@ -180,22 +200,52 @@ const Inventory = () => {
         {/* Header Section */}
         {!isLoading && (
           <motion.div className="mb-6" variants={headerVariants}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-neutral-900">
-                  My Inventory
-                </h1>
-                <p className="text-neutral-600 mt-1">
-                  View and manage all vehicles in your inventory
-                </p>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-neutral-900">
+                    My Inventory
+                  </h1>
+                  <p className="text-neutral-600 mt-1">
+                    View and manage all vehicles in your inventory
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <InventorySort
+                    sortBy={sortBy}
+                    onSortChange={handleSortChange}
+                    isSorting={isSorting}
+                    className="w-full sm:w-auto"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <InventorySort
-                  sortBy={sortBy}
-                  onSortChange={handleSortChange}
-                  isSorting={isSorting}
-                  className="w-full sm:w-auto"
-                />
+              
+              {/* Search Bar */}
+              <div className="w-full">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by vehicle, price, year, condition, location, or status..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full pl-12 pr-10 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => handleSearchChange('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 hover:bg-neutral-100 rounded-full transition-colors duration-200"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
+                    </button>
+                  )}
+                  {isSearching && !searchQuery && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
@@ -204,7 +254,7 @@ const Inventory = () => {
         {/* Content Section */}
         <motion.div
           variants={contentVariants}
-          key={currentPage} // Re-animate when page changes
+          key={`${currentPage}-${debouncedSearchQuery}`} // Re-animate when page or search changes
         >
           {isLoading || isSorting ? (
             <InventorySkeleton />
@@ -230,6 +280,7 @@ const Inventory = () => {
               totalPages={pagination.total_pages}
               totalCount={pagination.total_items}
               pagination={pagination}
+              searchQuery={searchQuery}
               onPageChange={handlePageChange}
               onViewVehicle={handleViewVehicle}
             />

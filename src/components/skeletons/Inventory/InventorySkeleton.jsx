@@ -49,6 +49,14 @@ const InventorySkeleton = () => {
         <Skeleton className="h-4 w-40" />
       </motion.div>
 
+      {/* Search Bar Skeleton */}
+      <motion.div 
+        className="mb-6"
+        variants={itemVariants}
+      >
+        <Skeleton className="h-12 w-full rounded-xl" />
+      </motion.div>
+
       {/* Desktop Table Skeleton */}
       <div className="hidden md:block overflow-x-auto">
         <motion.div 
