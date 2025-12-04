@@ -1,4 +1,4 @@
-import { Star, TrendingUp, Users, Award, Quote, CheckCircle } from "lucide-react";
+import { Star, TrendingUp, Users, Award, Quote, CheckCircle, BarChart3 } from "lucide-react";
 import { AnimatedSection } from "../common/AnimatedSection/AnimatedSection";
 import { motion } from 'framer-motion';
 import TestimonialCarousel from "./Testimonials";
@@ -12,10 +12,10 @@ export default function SuccessStories ()  {
               <span className="text-[#4F46E5] font-semibold text-sm">Success Stories</span>
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1A1A1A] mb-6 leading-tight">
-              Stay Ahead. Win More Deals.
+              Success Stories
             </h2>
             <p className="text-xl text-[#4A4A4A] max-w-3xl mx-auto leading-relaxed">
-              Access insights and tools that give you a competitive edge in the automotive market
+              See how top-performing dealerships outperform their markets by acquiring smarter and selling faster with America's only dual-market automotive platform.
             </p>
           </AnimatedSection>
   
@@ -24,20 +24,20 @@ export default function SuccessStories ()  {
             {[
               {
                 icon: <TrendingUp className="w-8 h-8" />,
-                title: "Boost Profit with Smarter Bidding",
-                description: "Learn advanced bidding strategies that help maximize your ROI while securing quality inventory at competitive prices.",
+                title: "Boost Profit on Both Sides of the Transaction",
+                description: "Smarter auction bidding for acquisition. Smarter price competition for selling. Higher margins, lower lead cost, faster turnover. More Sales, More F&I opportunity, Best CSI.",
                 gradient: "from-[#4F46E5] to-[#2E93E1]"
               },
               {
-                icon: <Users className="w-8 h-8" />,
-                title: "Digital Tools to Scale Inventory",
-                description: "Discover how technology can streamline your operations and scale your dealership efficiently with our integrated platform.",
+                icon: <BarChart3 className="w-8 h-8" />,
+                title: "Digital Tools to Scale Inventory and Sales",
+                description: "From data-driven analytics to inventory integrations, everything is optimized for your store's growth.",
                 gradient: "from-[#15A9D8] to-[#2E93E1]"
               },
               {
                 icon: <Award className="w-8 h-8" />,
                 title: "Dealers Achieving Real Results",
-                description: "Read success stories from dealers who have transformed their business using our platform and increased their profits.",
+                description: "Stories from dealers who transformed their buying and selling operations with Amacar.",
                 gradient: "from-[#2E93E1] to-[#2E93E1]"
               }
             ].map((item, index) => (

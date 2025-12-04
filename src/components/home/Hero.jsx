@@ -32,22 +32,25 @@ export default function Hero() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-[#1A1A1A] mb-6 sm:mb-8 leading-tight sm:leading-none">
               <span className="block mb-1 sm:mb-2">
                 <span className="text-[#1A1A1A]">
-                  Real Leads.
+                  Buy Smarter.
                 </span>
               </span>
               <span className="block mb-1 sm:mb-2">
                 <span className="bg-gradient-to-r from-[#4F46E5] to-[#15A9D8] bg-clip-text text-transparent">
-                  Real-Time Bidding.
+                  Sell Faster.
                 </span>
               </span>
               <span className="block text-black">
-                Real Profit.
+                Keep More Profit.
               </span>
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-[#4A4A4A] max-w-2xl mx-auto lg:mx-0 mb-8 sm:mb-10 lg:mb-12 leading-relaxed font-light px-2 sm:px-0">
-              Get instant access to pre-qualified seller listings with zero per-unit auction fees.
-              Unlock advanced dealer tools that help you source quality inventory and close more deals, faster.
+              Avoid traditional auction fees that can reach up to $1,000+ per vehicle, and close more deals with high-intent buyers—Let your Sales Team follow up other leads from other sources, while Amacar sends all Confirmed appointments in the system with 90% Confirmed and show ratios.
+            </p>
+            
+            <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#1A1A1A] max-w-2xl mx-auto lg:mx-0 mb-8 sm:mb-10 lg:mb-12 leading-relaxed px-2 sm:px-0">
+              Two Marketplaces. One Platform. Total Advantage.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
@@ -62,15 +65,26 @@ export default function Hero() {
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
               ) : (
-                <motion.button
-                  onClick={() => setLoginModalOpen(true)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center justify-center gap-2 border-2 border-[#4F46E5] cursor-pointer px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base text-[#4F46E5] rounded-lg font-semibold shadow-lg bg-white hover:bg-[#4F46E5] hover:text-white transition-colors w-full sm:w-auto"
-                >
-                  <span>Login</span>
-                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-                </motion.button>
+                <>
+                  <motion.button
+                    onClick={() => navigate("/register")}
+                    whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(79, 70, 229, 0.4)" }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#15A9D8] cursor-pointer px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                  >
+                    <span>Start Bidding</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                  <motion.button
+                    onClick={() => navigate("/register")}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center justify-center gap-2 border-2 border-[#4F46E5] cursor-pointer px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base text-[#4F46E5] rounded-lg font-semibold shadow-lg bg-white hover:bg-[#4F46E5] hover:text-white transition-colors w-full sm:w-auto"
+                  >
+                    <span>Start Selling</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                </>
               )}
             </div>
           </motion.div>

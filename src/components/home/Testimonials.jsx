@@ -30,14 +30,15 @@ export default function TestimonialCarousel() {
     },
     {
       id: 2,
-      name: "Mark G",
+      name: "Alex R.",
       role: "Dealership",
       date: "December 6, 2024",
       rating: 5,
-      text: "You have access to local customers who are willing to sell you their car, let you touch and maybe drive it. In return, you have the opportunity to sell another car to the other client directly.",
+      text: "Reverse Bidding changed everything for us. Buyers select the exact car they want, and instead of chasing leads, we simply compete by adjusting the price. No back-and-forth negotiation—just real buyers ready to purchase. It's the future.",
       image:
         "https://dealer.amacar.ai/wp-content/uploads/2024/12/close-up-portrait-of-smiling-handsome-business-man-2024-10-18-05-05-50-utc-min-1.jpg",
       category: "dealership",
+      position: "General Manager at Toyota Los Angeles"
     },
     {
       id: 3,
@@ -211,6 +212,9 @@ export default function TestimonialCarousel() {
                             {testimonial.role}
                           </span>
                         </div>
+                        {testimonial.position && (
+                          <p className="text-xs text-neutral-600 mb-1">{testimonial.position}</p>
+                        )}
                         <div className="flex items-center gap-1 text-xs text-neutral-500">
                           <Calendar className="w-3 h-3" />
                           <span>{testimonial.date}</span>

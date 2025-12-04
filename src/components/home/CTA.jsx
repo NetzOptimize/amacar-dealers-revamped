@@ -25,20 +25,24 @@ export default function CTA () {
               </div>
               
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                Join as a Dealer
+                Ready to Get Started?
               </h2>
               
-              <p className="text-xl sm:text-2xl text-white/90 max-w-4xl mx-auto leading-relaxed mb-12">
-                Start winning auctions and growing your inventory today. Join hundreds of successful 
-                dealers who trust Amacar for quality vehicle acquisitions.
+              <p className="text-xl sm:text-2xl text-white/90 max-w-4xl mx-auto leading-relaxed mb-4">
+                Join as a Dealer — Acquire Smarter. Sell Smarter. Grow Faster.
+              </p>
+              
+              <p className="text-lg sm:text-xl text-white/80 max-w-4xl mx-auto leading-relaxed mb-12">
+                Be among the first in the nation to access the complete Amacar dual-market platform.
               </p>
               
               {/* Key Benefits */}
-              <div className="grid md:grid-cols-3 gap-8 mb-12">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 {[
                   { icon: <CheckCircle className="w-6 h-6" />, text: "Zero Per-Unit Fees" },
-                  { icon: <TrendingUp className="w-6 h-6" />, text: "Real-Time Bidding" },
-                  { icon: <Users className="w-6 h-6" />, text: "500+ Trusted Dealers" }
+                  { icon: <TrendingUp className="w-6 h-6" />, text: "Live Auction + Reverse Bidding" },
+                  { icon: <Users className="w-6 h-6" />, text: "500+ Trusted Dealers" },
+                  { icon: <Star className="w-6 h-6" />, text: "First Reverse Bidding Platform in the Nation" }
                 ].map((benefit, index) => (
                   <motion.div
                     key={index}
