@@ -17,6 +17,7 @@ const Inventory = () => {
   const [sortBy, setSortBy] = useState("date-desc");
   const [isSorting, setIsSorting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isContentLoading, setIsContentLoading] = useState(true);
   const [vehicles, setVehicles] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -38,7 +39,11 @@ const Inventory = () => {
   // Fetch inventory from API
   const fetchInventory = async (page = 1, perPage = 20, search = '') => {
     try {
-      setIsLoading(true);
+      // Only set initial loading on first mount
+      if (isLoading && vehicles.length === 0) {
+        setIsLoading(true);
+      }
+      setIsContentLoading(true);
       setIsSearching(!!search);
       setError(null);
       
@@ -72,6 +77,7 @@ const Inventory = () => {
       toast.error('Failed to load inventory. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsContentLoading(false);
       setIsSearching(false);
     }
   };
@@ -197,66 +203,69 @@ const Inventory = () => {
       exit="exit"
     >
       <div className="max-w-8xl px-4 md:px-6">
-        {/* Header Section */}
-        {!isLoading && (
-          <motion.div className="mb-6" variants={headerVariants}>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-neutral-900">
-                    My Inventory
-                  </h1>
-                  <p className="text-neutral-600 mt-1">
-                    View and manage all vehicles in your inventory
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <InventorySort
-                    sortBy={sortBy}
-                    onSortChange={handleSortChange}
-                    isSorting={isSorting}
-                    className="w-full sm:w-auto"
-                  />
-                </div>
+        {/* Header Section - Always visible */}
+        <motion.div 
+          className="mb-6" 
+          variants={headerVariants}
+          initial={isLoading ? "initial" : false}
+          animate="animate"
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-neutral-900">
+                  My Inventory
+                </h1>
+                <p className="text-neutral-600 mt-1">
+                  View and manage all vehicles in your inventory
+                </p>
               </div>
-              
-              {/* Search Bar */}
-              <div className="w-full">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by vehicle, price, year, condition, location, or status..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full pl-12 pr-10 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => handleSearchChange('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 hover:bg-neutral-100 rounded-full transition-colors duration-200"
-                      aria-label="Clear search"
-                    >
-                      <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
-                    </button>
-                  )}
-                  {isSearching && !searchQuery && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-3">
+                <InventorySort
+                  sortBy={sortBy}
+                  onSortChange={handleSortChange}
+                  isSorting={isSorting}
+                  className="w-full sm:w-auto"
+                />
               </div>
             </div>
-          </motion.div>
-        )}
+            
+            {/* Search Bar */}
+            <div className="w-full">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Search by vehicle, price, year, condition, location, or status..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-12 pr-10 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                />
+                {searchQuery && !isContentLoading && (
+                  <button
+                    onClick={() => handleSearchChange('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 hover:bg-neutral-100 rounded-full transition-colors duration-200"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
+                  </button>
+                )}
+                {isContentLoading && searchQuery && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Content Section */}
         <motion.div
           variants={contentVariants}
-          key={`${currentPage}-${debouncedSearchQuery}`} // Re-animate when page or search changes
+          key={currentPage} // Only re-animate when page changes, not on search
         >
-          {isLoading || isSorting ? (
+          {isContentLoading || isSorting ? (
             <InventorySkeleton />
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -266,7 +275,7 @@ const Inventory = () => {
                 </h3>
                 <p className="text-gray-600 mb-4">{error}</p>
                 <button
-                  onClick={() => fetchInventory(currentPage, itemsPerPage)}
+                  onClick={() => fetchInventory(currentPage, itemsPerPage, debouncedSearchQuery)}
                   className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
                 >
                   Try Again
@@ -289,7 +298,7 @@ const Inventory = () => {
 
         {/* Pagination */}
         <AnimatePresence mode="wait">
-          {!isLoading && !isSorting && !error && pagination.total_pages > 1 && (
+          {!isContentLoading && !isSorting && !error && pagination.total_pages > 1 && (
             <motion.div
               className="flex justify-center pt-6 border-t border-neutral-100"
               variants={paginationVariants}
