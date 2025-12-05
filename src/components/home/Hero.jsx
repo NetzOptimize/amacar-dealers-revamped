@@ -75,15 +75,7 @@ export default function Hero() {
                     <span>Start Bidding</span>
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
-                  <motion.button
-                    onClick={() => navigate("/register")}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center justify-center gap-2 border-2 border-[#4F46E5] cursor-pointer px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base text-[#4F46E5] rounded-lg font-semibold shadow-lg bg-white hover:bg-[#4F46E5] hover:text-white transition-colors w-full sm:w-auto"
-                  >
-                    <span>Start Selling</span>
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-                  </motion.button>
+
                 </>
               )}
             </div>
