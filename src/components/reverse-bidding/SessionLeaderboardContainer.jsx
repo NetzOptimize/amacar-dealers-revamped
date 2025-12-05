@@ -163,7 +163,11 @@ const SessionLeaderboardContainer = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/vehicle-details/${productId}`);
+                navigate(`/vehicle-details/${productId}`, {
+                  state: {
+                    source: 'reverse-bid', // Reverse bid sessions are dealer vehicles
+                  },
+                });
               }}
               className="text-sm text-primary-600 hover:text-primary-700 hover:underline font-medium transition-colors cursor-pointer"
             >

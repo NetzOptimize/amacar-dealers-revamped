@@ -48,6 +48,7 @@ const HighestBidsContainer = ({ auctions = [] }) => {
     navigate(`/vehicle-details/${vehicleId}`, {
       state: {
         productId: vehicleId,
+        source: 'car-dealer', // Highest bids are from auctions (customer vehicles)
       },
     });
   };

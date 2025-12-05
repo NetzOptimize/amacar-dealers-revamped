@@ -125,7 +125,12 @@ const RecentActivity = () => {
   const handleActivityClick = (activity) => {
     // If both vehicle_id and customer_id are present, prioritize vehicle_id (go to vehicle details)
     if (activity.data?.vehicle_id) {
-      navigate(`/vehicle-details/${activity.data.vehicle_id}`, {state: {productId: activity.data.vehicle_id}});
+      navigate(`/vehicle-details/${activity.data.vehicle_id}`, {
+        state: {
+          productId: activity.data.vehicle_id,
+          source: 'reverse-bid', // Recent activity vehicles are typically from inventory (dealer vehicles)
+        },
+      });
     } 
     // If only customer_id is present, open customer modal
     else if (activity.data?.customer_id) {

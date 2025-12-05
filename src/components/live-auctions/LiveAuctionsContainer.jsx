@@ -113,6 +113,7 @@ const LiveAuctionsContainer = ({
       state: {
         productId: vehicle.id,
         vehicleData: vehicle,
+        source: 'car-dealer', // Live auctions are customer vehicles
       },
     });
   };

@@ -462,6 +462,29 @@ reverseBidApi.interceptors.request.use(
   }
 );
 
+// Create a separate axios instance for car-dealer endpoints
+const carDealerApi = axios.create({
+  baseURL: getReverseBidBaseURL() + '/car-dealer/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
+});
+
+// Add auth interceptor for car-dealer API
+carDealerApi.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Get dealer's reverse bidding sessions
 export const getDealerSessions = async (params = {}) => {
   try {
@@ -495,13 +518,192 @@ export const getWonSessions = async (params = {}) => {
   }
 };
 
-// Get vehicle details (only for vehicles owned by dealer)
-export const getVehicleDetail = async (vehicleId) => {
+// Get vehicle details from reverse-bid API (for dealer-owned vehicles)
+const getVehicleDetailFromReverseBid = async (vehicleId) => {
   try {
     const response = await reverseBidApi.get(`/dealer/vehicles/${vehicleId}`);
+    if (response.data && response.data.success) {
+      // Add source field to identify this as a dealer vehicle
+      return {
+        ...response.data,
+        source: 'reverse-bid',
+        isDealerVehicle: true
+      };
+    }
     return response.data;
   } catch (error) {
+    // Return null if vehicle not found or unauthorized (will try car-dealer API)
+    if (error.response?.status === 403 || error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+// Get vehicle details from car-dealer API (for customer-owned vehicles)
+const getVehicleDetailFromCarDealer = async (vehicleId) => {
+  try {
+    const response = await carDealerApi.get(`/vehicle/details/${vehicleId}`);
+    
+    // Transform nested response structure to flat structure expected by VehicleDetails component
+    if (response.data && response.data.success && response.data.vehicle) {
+      const vehicle = response.data.vehicle;
+      const basicInfo = vehicle.basic_info || {};
+      const location = vehicle.location || {};
+      const cashOffer = vehicle.cash_offer || {};
+      const auction = vehicle.auction || {};
+      
+      // Flatten the structure
+      const flattenedData = {
+        // Basic info
+        id: basicInfo.product_id,
+        product_id: basicInfo.product_id,
+        title: basicInfo.title,
+        vin: basicInfo.vin,
+        year: basicInfo.year,
+        make: basicInfo.make,
+        model: basicInfo.model,
+        trim: basicInfo.trim,
+        mileage: basicInfo.mileage,
+        odometer: basicInfo.mileage, // Alias for compatibility
+        exterior_color: basicInfo.exterior_color,
+        interior_color: basicInfo.interior_color,
+        body_type: basicInfo.body_type,
+        transmission: basicInfo.transmission,
+        engine_type: basicInfo.engine_type,
+        powertrain_description: basicInfo.powertrain_description,
+        features: basicInfo.features || [],
+        
+        // Location
+        zip_code: location.zip_code,
+        city: location.city,
+        state: location.state,
+        coordinates: location.coordinates,
+        
+        // Cash offer
+        offer_amount: cashOffer.offer_amount,
+        offer_date: cashOffer.offer_date,
+        offer_expiration: cashOffer.offer_expiration,
+        offer_terms: cashOffer.offer_terms,
+        
+        // Auction
+        is_auctionable: auction.is_auctionable,
+        auction_started: auction.auction_started,
+        auction_started_at: auction.auction_started_at,
+        auction_ends_at: auction.auction_ends_at,
+        is_sent_to_salesforce: auction.is_sent_to_salesforce,
+        remaining_seconds: auction.remaining_seconds,
+        is_active: auction.is_active,
+        in_working_hours: auction.in_working_hours,
+        
+        // Images (already includes damage_data)
+        images: vehicle.images || [],
+        
+        // Condition assessment
+        condition_assessment: vehicle.condition_assessment || {},
+        
+        // Bids
+        bids: vehicle.bids || [],
+        
+        // Dates
+        created_at: vehicle.created_at,
+        updated_at: vehicle.updated_at,
+        date_created: vehicle.created_at,
+        date_modified: vehicle.updated_at,
+        
+        // User info
+        user: vehicle.user || {},
+        
+        // Additional fields for compatibility
+        description: '', // Will be populated from post content if needed
+        short_description: '', // Will be populated if needed
+        status: 'publish', // Default status
+        new_used: basicInfo.new_used || 'U', // Default to used
+        condition: basicInfo.new_used || 'U',
+        price: cashOffer.offer_amount || 0,
+        regular_price: cashOffer.offer_amount || 0,
+        inventory_status: 'available', // Default
+      };
+      
+      return {
+        success: true,
+        data: flattenedData,
+        source: 'car-dealer',
+        isDealerVehicle: false,
+        // Also include the nested structure for CarDetailsView component
+        vehicle: vehicle
+      };
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle details from car-dealer API:', error);
+    throw error;
+  }
+};
+
+// Get vehicle details with automatic fallback
+// Tries reverse-bid API first (for dealer-owned vehicles), then car-dealer API (for customer-owned vehicles)
+// This endpoint is used for VehicleDetails page
+// @param {string} vehicleId - The vehicle/product ID
+// @param {string} source - Optional: 'car-dealer' for customer vehicles (live auctions, won auctions) or 'reverse-bid' for dealer vehicles (reverse bids, won sessions, inventory)
+export const getVehicleDetail = async (vehicleId, source = null) => {
+  try {
+    // If source is explicitly provided, use that API directly
+    if (source === 'car-dealer') {
+      const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+      if (carDealerResponse && carDealerResponse.success) {
+        return carDealerResponse;
+      }
+      // If car-dealer fails, return error (don't fallback to reverse-bid)
+      return {
+        success: false,
+        message: 'Vehicle not found in car-dealer API'
+      };
+    }
+    
+    if (source === 'reverse-bid') {
+      const reverseBidResponse = await getVehicleDetailFromReverseBid(vehicleId);
+      if (reverseBidResponse && reverseBidResponse.success) {
+        return reverseBidResponse;
+      }
+      // If reverse-bid fails, return error (don't fallback to car-dealer)
+      return {
+        success: false,
+        message: 'Vehicle not found in reverse-bid API'
+      };
+    }
+    
+    // If no source provided, try reverse-bid API first (for dealer-owned vehicles from sessions/inventory)
+    const reverseBidResponse = await getVehicleDetailFromReverseBid(vehicleId);
+    if (reverseBidResponse && reverseBidResponse.success) {
+      return reverseBidResponse;
+    }
+    
+    // If reverse-bid API doesn't return the vehicle, try car-dealer API (for customer-owned vehicles from auctions)
+    const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+    if (carDealerResponse && carDealerResponse.success) {
+      return carDealerResponse;
+    }
+    
+    // If both fail, return error
+    return {
+      success: false,
+      message: 'Vehicle not found'
+    };
+  } catch (error) {
     console.error('Error fetching vehicle details:', error);
+    // If reverse-bid API throws an error (not 403/404), try car-dealer API as fallback
+    if (error.response?.status !== 403 && error.response?.status !== 404) {
+      try {
+        const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+        if (carDealerResponse && carDealerResponse.success) {
+          return carDealerResponse;
+        }
+      } catch (fallbackError) {
+        console.error('Error fetching vehicle details from car-dealer API (fallback):', fallbackError);
+      }
+    }
     throw error;
   }
 };

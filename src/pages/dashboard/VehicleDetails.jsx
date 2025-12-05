@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Car,
@@ -27,16 +27,19 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/Button";
+import CarDetailsView from "@/components/vehicle-details/CarDetailsView";
 
 const VehicleDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const [vehicleData, setVehicleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showMarkSoldModal, setShowMarkSoldModal] = useState(false);
   const [markingSold, setMarkingSold] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [vehicleSource, setVehicleSource] = useState(null); // 'reverse-bid' or 'car-dealer'
 
   // Fetch vehicle details on mount
   useEffect(() => {
@@ -50,10 +53,24 @@ const VehicleDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await getVehicleDetail(id);
+        
+        // Get source from router location state (passed from navigation) or default to null
+        const sourceFromState = routerLocation.state?.source || null;
+        const response = await getVehicleDetail(id, sourceFromState);
 
-        if (response && response.success && response.data) {
-          setVehicleData(response.data);
+        if (response && response.success) {
+          // Store the source to determine which UI to render
+          setVehicleSource(response.source || 'reverse-bid');
+          
+          // For car-dealer API, use the nested vehicle structure
+          // For reverse-bid API, use the flat data structure
+          if (response.source === 'car-dealer' && response.vehicle) {
+            setVehicleData(response.vehicle);
+          } else if (response.data) {
+            setVehicleData(response.data);
+          } else {
+            setError("Invalid response structure");
+          }
         } else {
           setError(response?.message || "Failed to fetch vehicle details");
         }
@@ -271,6 +288,15 @@ const VehicleDetails = () => {
       </div>
     );
   }
+
+  // Render CarDetailsView for customer vehicles (from car-dealer API)
+  // This UI is optimized for damage detection and customer vehicle details
+  if (vehicleSource === 'car-dealer') {
+    return <CarDetailsView vehicleData={vehicleData} />;
+  }
+
+  // Render existing VehicleDetails UI for dealer vehicles (from reverse-bid API)
+  // This UI has dealer-specific features like "Mark as Sold"
 
   return (
     <div className="min-h-screen bg-gray-50">
