@@ -1,155 +1,215 @@
-
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { ChevronDown, Play, X, ArrowRight, Shield, Zap, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Play, X, ArrowRight, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
-import LoginModal from '../ui/LoginUI/LoginModal';
-import { useNavigate } from 'react-router-dom';
-
 
 export default function Hero() {
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [showVideo, setShowVideo] = useState(false);
-  const { user } = useSelector((state) => state.user);
+  const [user, setUser] = useState(null); // Simulate Redux user state
   const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const navigate = useNavigate();
-  const handleForgotPassword = () => {
-    setLoginModalOpen(true);
-  };
+  
+  const navigate = (path) => console.log('Navigate to:', path);
+
   return (
-    <div className="relative min-h-[70vh] sm:min-h-[75vh] lg:min-h-[80vh] flex items-center justify-center overflow-hidden bg-white">
-      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 lg:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center">
-          {/* Left Column - Text Content */}
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
+      {/* Minimal background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white" />
+      
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-32">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          
+          {/* Left Column - Content */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center lg:text-left order-2 lg:order-1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8 lg:space-y-10"
           >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100/50"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="text-xs font-medium text-indigo-900">America's First Dual-Marketplace</span>
+            </motion.div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-[#1A1A1A] mb-6 sm:mb-8 leading-tight sm:leading-none">
-              <span className="block mb-1 sm:mb-2">
-                <span className="text-[#1A1A1A]">
-                  Buy Smarter.
+            {/* Main Heading */}
+            <div className="space-y-4">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+                AMACAR
+              </h1>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-gray-600 leading-tight">
+                The Smarter Way for Dealers to{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
+                  Buy & Sell
                 </span>
-              </span>
-              <span className="block mb-1 sm:mb-2">
-                <span className="bg-gradient-to-r from-[#4F46E5] to-[#15A9D8] bg-clip-text text-transparent">
-                  Sell Faster.
-                </span>
-              </span>
-              <span className="block text-black">
-                Keep More Profit.
-              </span>
-            </h1>
+              </h2>
+            </div>
 
-            <p className="text-base sm:text-lg md:text-xl text-[#4A4A4A] max-w-2xl mx-auto lg:mx-0 mb-8 sm:mb-10 lg:mb-12 leading-relaxed font-light px-2 sm:px-0">
-              Avoid traditional auction fees that can reach up to $1,000+ per vehicle, and close more deals with high-intent buyers—Let your Sales Team follow up other leads from other sources, while Amacar sends all Confirmed appointments in the system with 90% Confirmed and show ratios.
-            </p>
-            
-            <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#1A1A1A] max-w-2xl mx-auto lg:mx-0 mb-8 sm:mb-10 lg:mb-12 leading-relaxed px-2 sm:px-0">
-              Two Marketplaces. One Platform. Total Advantage.
+            {/* Description */}
+            <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
+              Source better cars through Live Auctions and sell more cars through the nation's first Reverse Bidding platform—all in one place.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-3">
               {user ? (
                 <motion.button
                   onClick={() => navigate("/dashboard")}
-                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(79, 70, 229, 0.4)" }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center justify-center gap-2 border-2 border-[#4F46E5] cursor-pointer px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base text-[#4F46E5] rounded-lg font-semibold shadow-lg bg-white hover:bg-[#4F46E5]/10 transition-colors w-full sm:w-auto"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all"
                 >
                   <span>Go to Dashboard</span>
-                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </motion.button>
               ) : (
                 <>
                   <motion.button
                     onClick={() => navigate("/register")}
-                    whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(79, 70, 229, 0.4)" }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#15A9D8] cursor-pointer px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-lg font-medium shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/30 transition-all"
                   >
-                    <span>Start Bidding</span>
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                    <span>Get Started</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </motion.button>
-
+                  
+                  <motion.button
+                    onClick={() => setShowVideo(true)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-lg font-medium border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>Watch Demo</span>
+                  </motion.button>
                 </>
               )}
             </div>
-          </motion.div>
 
-          {/* Right Column - Video Thumbnail */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative order-1 lg:order-2"
-          >
-            <div
-              className="relative h-[35vh] sm:h-[40vh] md:h-[45vh] lg:h-[50vh] xl:h-[55vh] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-white border border-[#E5E5E5] p-2 sm:p-3 cursor-pointer group hover:shadow-3xl transition-all duration-500 hover:scale-105"
-              onClick={() => setShowVideo(true)}
-            >
-              <div className="relative w-full h-full bg-[#4F46E5] rounded-xl sm:rounded-2xl">
-                {/* Professional video thumbnail */}
-                <div className="text-center h-full p-3 sm:p-4 flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mb-3 sm:mb-4 mx-auto group-hover:scale-110 transition-transform duration-300 shadow-2xl">
-                    <Play className="w-6 h-6 sm:w-8 sm:h-8 text-[#4F46E5] ml-0.5 sm:ml-1" />
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-white/80 text-xs sm:text-sm">
-                    <span>• Real-time bidding</span>
-                    <span>• Instant access</span>
-                  </div>
-                </div>
-
-                {/* Subtle overlay for depth */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+            {/* Social Proof */}
+            <div className="flex items-center gap-6 pt-2">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 via-blue-400 to-blue-500 ring-2 ring-white"
+                  />
+                ))}
+              </div>
+              <div className="text-sm">
+                <p className="font-semibold text-gray-900">2,500+ Dealers</p>
+                <p className="text-gray-500">Trusted by the industry</p>
               </div>
             </div>
           </motion.div>
-        </div>
 
-        {/* Professional scroll indicator */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="mt-6 sm:mt-8 lg:mt-10 text-center"
-        >
-          <div className="inline-flex flex-col items-center space-y-1 sm:space-y-2">
-            <span className="text-[#6B6B6B] text-xs sm:text-sm font-medium">Scroll to explore</span>
-            <a href="/#features"><ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-[#6B6B6B]" /></a>
-          </div>
-        </motion.div>
+          {/* Right Column - Image/Video Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative"
+          >
+            {/* Main Card */}
+            <div
+              onClick={() => setShowVideo(true)}
+              className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer bg-gradient-to-br from-indigo-500 via-indigo-600 to-blue-600 shadow-2xl shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all duration-300"
+            >
+              {/* Placeholder Dashboard Image */}
+              <div className="absolute inset-0 flex items-center justify-center p-8">
+                <div className="w-full h-full bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6 flex flex-col gap-4">
+                  {/* Mock Dashboard Elements */}
+                  <div className="flex gap-3">
+                    <div className="h-3 w-20 bg-white/30 rounded-full" />
+                    <div className="h-3 w-16 bg-white/20 rounded-full" />
+                    <div className="h-3 w-24 bg-white/20 rounded-full" />
+                  </div>
+                  <div className="flex-1 bg-white/20 rounded-lg" />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="h-16 bg-white/20 rounded-lg" />
+                    <div className="h-16 bg-white/20 rounded-lg" />
+                    <div className="h-16 bg-white/20 rounded-lg" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Play Button Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  className="w-16 h-16 rounded-full bg-white shadow-2xl flex items-center justify-center"
+                >
+                  <Play className="w-7 h-7 text-indigo-600 ml-0.5" fill="currentColor" />
+                </motion.div>
+              </div>
+
+              {/* Feature Pills */}
+              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
+                <div className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                  <span className="text-xs font-medium text-gray-900">Real-time Bidding</span>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                  <span className="text-xs font-medium text-gray-900">Instant Access</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating Stats Cards */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="absolute -left-4 top-1/4 px-4 py-3 rounded-xl bg-white shadow-lg border border-gray-100"
+            >
+              <p className="text-2xl font-bold text-gray-900">$2.5M+</p>
+              <p className="text-xs text-gray-500">Daily Volume</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="absolute -right-4 bottom-1/4 px-4 py-3 rounded-xl bg-white shadow-lg border border-gray-100"
+            >
+              <p className="text-2xl font-bold text-gray-900">15k+</p>
+              <p className="text-xs text-gray-500">Cars Listed</p>
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Professional Video Modal */}
+      {/* Video Modal */}
       {showVideo && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setShowVideo(false)}
         >
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            className="relative w-full max-w-4xl sm:max-w-5xl lg:max-w-6xl"
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative w-full max-w-5xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Professional close button */}
             <button
               onClick={() => setShowVideo(false)}
-              className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 z-10 w-8 h-8 sm:w-12 sm:h-12 bg-[#4F46E5] hover:bg-[#2E93E1] rounded-full flex items-center justify-center text-white transition-all duration-300 shadow-2xl hover:scale-110"
+              className="absolute -top-3 -right-3 z-10 w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 hover:bg-gray-100 transition-colors shadow-lg"
             >
-              <X className="w-4 h-4 sm:w-6 sm:h-6" />
+              <X className="w-5 h-5" />
             </button>
 
-            {/* Video container with professional styling */}
-            <div className="relative w-full bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl" style={{ paddingBottom: '56.25%' }}>
+            <div className="relative w-full bg-black rounded-xl overflow-hidden shadow-2xl" style={{ paddingBottom: '56.25%' }}>
               <iframe
                 src="https://player.vimeo.com/video/1112370692?badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&controls=0"
                 className="absolute top-0 left-0 w-full h-full"
@@ -162,14 +222,6 @@ export default function Hero() {
           </motion.div>
         </motion.div>
       )}
-
-      {loginModalOpen && (
-        <LoginModal
-          isOpen={loginModalOpen}
-          onClose={() => setLoginModalOpen(false)}
-          onForgotPassword={handleForgotPassword}
-        />
-      )}
     </div>
   );
-};
+}

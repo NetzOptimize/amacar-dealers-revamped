@@ -5,6 +5,7 @@ import Hero from "@/components/home/Hero";
 import Highlights from "@/components/home/Highlights";
 import HowItWorks from "@/components/home/HowItWorks";
 import SuccessStories from "@/components/home/SuccessStories";
+import ValueProposition from "@/components/home/ValueProposition";
 import Navbar from "@/components/layout/Header/Navbar";
 import React from "react";
 import Footer from "@/components/layout/Footer/Footer";
@@ -20,6 +21,7 @@ const Home = () => {
       <div className="mt-4">
         {/* <HomeNewNew /> */}
         <Hero />
+        <ValueProposition />
         <Features />
         <BrandLogosCarousel />
         <Highlights />
