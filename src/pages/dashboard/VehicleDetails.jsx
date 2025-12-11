@@ -67,7 +67,7 @@ const VehicleDetails = () => {
           if (response.source === 'car-dealer' && response.vehicle) {
             setVehicleData(response.vehicle);
           } else if (response.data) {
-            setVehicleData(response.data);
+          setVehicleData(response.data);
           } else {
             setError("Invalid response structure");
           }
