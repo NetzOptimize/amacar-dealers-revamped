@@ -73,7 +73,7 @@ export default function Hero() {
               ) : (
                 <>
                   <motion.button
-                    onClick={() => setLoginModalOpen(true)}
+                    onClick={() => navigate("/register")}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-lg font-medium shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/30 transition-all"
@@ -213,7 +213,7 @@ export default function Hero() {
 
             <div className="relative w-full h-full lg:h-auto lg:pb-[56.25%] bg-black lg:rounded-xl overflow-hidden lg:shadow-2xl">
               <iframe
-                src="https://player.vimeo.com/video/1112370692?badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&controls=0"
+                src="https://player.vimeo.com/video/1112370692?badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&controls=1&muted=0"
                 className="absolute top-0 left-0 w-full h-full"
                 frameBorder="0"
                 allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
