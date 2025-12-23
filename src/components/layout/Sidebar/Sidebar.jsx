@@ -124,6 +124,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     { name: 'Active Customers', href: '/new-customers', icon: UserPlus },
     // { name: 'Active customers', href: '/active-customers', icon: Users },
     ...(userRole === 'dealer' ? [{ name: 'My inventory', href: '/inventory', icon: Warehouse }] : []),
+    ...((userRole === 'administrator' || userRole === 'sales_manager') ? [{ name: 'Inventory', href: '/inventory', icon: Warehouse }] : []),
     ...(canAccessDealershipUsers ? [{ name: 'Dealership users', href: '/dealership-users', icon: UserPlus2 }] : []),
     ...(canAccessDealerships ? [{ name: 'DealerShips', href: '/dealerships', icon: Home }] : []),
     ...(canAccessInvitedDealerships ? [{ name: 'Invited Dealerships', href: '/invited-dealerships', icon: UserPlus }] : []),

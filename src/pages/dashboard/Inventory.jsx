@@ -152,7 +152,8 @@ const Inventory = () => {
       city: vehicle.city || '',
       state: vehicle.state || '',
       is_reverse_biddable: vehicle.is_reverse_biddable || '',
-      owned_by: vehicle.owned_by || ''
+      owned_by: vehicle.owned_by || '',
+      dealer_info: vehicle.dealer_info || null // Include dealer_info for admin/sales_manager
     }));
   }, [vehicles]);
 

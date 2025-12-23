@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 
 const InventoryContainer = ({
   vehicles = [],
@@ -37,8 +38,24 @@ const InventoryContainer = ({
   onPageChange = () => {},
   onViewVehicle = () => {},
 }) => {
+  const { user } = useSelector((state) => state.user);
+  const userRole = user?.role;
+  const isAdminOrSalesManager = userRole === 'administrator' || userRole === 'sales_manager';
   const navigate = useNavigate();
   const [isDesktop, setIsDesktop] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== Inventory Container Debug ===');
+    console.log('User:', user);
+    console.log('User Role:', userRole);
+    console.log('Is Admin or Sales Manager:', isAdminOrSalesManager);
+    console.log('Vehicles:', vehicles);
+    if (vehicles.length > 0) {
+      console.log('First vehicle:', vehicles[0]);
+      console.log('First vehicle dealer_info:', vehicles[0]?.dealer_info);
+    }
+  }, [user, userRole, isAdminOrSalesManager, vehicles]);
 
   // Handle custom breakpoint at 1404px
   useEffect(() => {
@@ -105,11 +122,18 @@ const InventoryContainer = ({
     return `$${parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Format date
-  const formatDate = (dateString) => {
+  // Format date (date only)
+  const formatDateOnly = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {
+    return date.toLocaleDateString();
+  };
+
+  // Format time (time only)
+  const formatTimeOnly = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -161,10 +185,10 @@ const InventoryContainer = ({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-neutral-900">
-              My Inventory
+              {isAdminOrSalesManager ? 'All Inventory' : 'My Inventory'}
             </h3>
             <p className="text-sm text-neutral-600">
-              All vehicles in your inventory
+              {isAdminOrSalesManager ? 'All vehicles in the system' : 'All vehicles in your inventory'}
             </p>
           </div>
         </div>
@@ -186,7 +210,7 @@ const InventoryContainer = ({
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-        <Table className="w-full min-w-[1400px]">
+        <Table className={`w-full ${isAdminOrSalesManager ? 'min-w-[1300px]' : 'min-w-[1100px]'}`}>
           <TableHeader>
             <TableRow className="border-neutral-200 hover:bg-transparent">
               <TableHead className="text-neutral-600 font-medium w-[10%]">
@@ -195,14 +219,8 @@ const InventoryContainer = ({
               <TableHead className="text-neutral-600 font-medium w-[18%]">
                 Vehicle
               </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[12%]">
-                Make / Model
-              </TableHead>
               <TableHead className="text-neutral-600 font-medium w-[10%]">
                 Price
-              </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[8%]">
-                Year
               </TableHead>
               <TableHead className="text-neutral-600 font-medium w-[8%]">
                 Condition
@@ -210,6 +228,11 @@ const InventoryContainer = ({
               <TableHead className="text-neutral-600 font-medium w-[12%]">
                 Location
               </TableHead>
+              {isAdminOrSalesManager && (
+                <TableHead className="text-neutral-600 font-medium w-[14%]">
+                  Dealership
+                </TableHead>
+              )}
               <TableHead className="text-neutral-600 font-medium w-[10%]">
                 Status
               </TableHead>
@@ -224,7 +247,7 @@ const InventoryContainer = ({
           <TableBody>
             {vehicles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-12 text-center">
+                <TableCell colSpan={isAdminOrSalesManager ? 9 : 8} className="py-12 text-center">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -252,6 +275,16 @@ const InventoryContainer = ({
               vehicles.map((vehicle, index) => {
               const primaryImage = getPrimaryImage(vehicle);
               const vehicleTitle = getVehicleTitle(vehicle);
+              
+              // Debug logging for first vehicle
+              if (index === 0) {
+                console.log('=== Vehicle Debug ===');
+                console.log('Vehicle ID:', vehicle.id);
+                console.log('Vehicle object:', vehicle);
+                console.log('dealer_info:', vehicle.dealer_info);
+                console.log('Has dealer_info:', !!vehicle.dealer_info);
+                console.log('isAdminOrSalesManager:', isAdminOrSalesManager);
+              }
               
               return (
                 <TableRow
@@ -302,20 +335,8 @@ const InventoryContainer = ({
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="text-sm text-neutral-700">
-                      {vehicle.make && vehicle.model 
-                        ? `${vehicle.make} ${vehicle.model}`
-                        : vehicle.make || vehicle.model || 'N/A'}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3">
                     <div className="font-semibold text-green-600 text-sm">
                       {formatPrice(vehicle.price)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <div className="text-xs text-neutral-600">
-                      {vehicle.year || 'N/A'}
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
@@ -331,14 +352,61 @@ const InventoryContainer = ({
                       </span>
                     </div>
                   </TableCell>
+                  {isAdminOrSalesManager && (
+                    <TableCell className="py-3">
+                      {(() => {
+                        // Debug logging
+                        if (index === 0) {
+                          console.log('=== Rendering Dealership Cell ===');
+                          console.log('Vehicle ID:', vehicle.id);
+                          console.log('dealer_info exists:', !!vehicle.dealer_info);
+                          console.log('dealer_info value:', vehicle.dealer_info);
+                          if (vehicle.dealer_info) {
+                            console.log('dealership_name:', vehicle.dealer_info.dealership_name);
+                            console.log('dealer_name:', vehicle.dealer_info.dealer_name);
+                            console.log('dealer_email:', vehicle.dealer_info.dealer_email);
+                          }
+                        }
+                        return null;
+                      })()}
+                      {vehicle.dealer_info ? (
+                        <div className="text-xs text-neutral-700 space-y-1">
+                          {vehicle.dealer_info.dealership_name ? (
+                            <div className="font-semibold text-neutral-900 text-sm">
+                              {vehicle.dealer_info.dealership_name}
+                            </div>
+                          ) : (
+                            <div className="text-neutral-400 text-xs">No Dealership</div>
+                          )}
+                          {vehicle.dealer_info.dealer_name && (
+                            <div className="text-neutral-700 text-xs">
+                              {vehicle.dealer_info.dealer_name}
+                            </div>
+                          )}
+                          {vehicle.dealer_info.dealer_email && (
+                            <a
+                              href={`mailto:${vehicle.dealer_info.dealer_email}`}
+                              className="text-primary-600 hover:text-primary-700 hover:underline text-xs block truncate"
+                              title={vehicle.dealer_info.dealer_email}
+                            >
+                              {vehicle.dealer_info.dealer_email}
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-neutral-400">N/A</div>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="py-3">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getInventoryStatusColor(vehicle.inventory_status)}`}>
                       {vehicle.inventory_status || 'active'}
                     </span>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="text-xs text-neutral-600">
-                      {formatDate(vehicle.post_date)}
+                    <div className="text-xs text-neutral-600 space-y-0.5">
+                      <div>{formatDateOnly(vehicle.post_date)}</div>
+                      <div className="text-neutral-500">{formatTimeOnly(vehicle.post_date)}</div>
                     </div>
                   </TableCell>
                   <TableCell className="py-3 text-right">
@@ -460,23 +528,9 @@ const InventoryContainer = ({
                   {/* Vehicle Details */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-neutral-600">Make / Model</span>
-                      <span className="text-sm font-medium text-neutral-800">
-                        {vehicle.make && vehicle.model 
-                          ? `${vehicle.make} ${vehicle.model}`
-                          : vehicle.make || vehicle.model || 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
                       <span className="text-xs text-neutral-600">Price</span>
                       <span className="text-sm font-bold text-green-600">
                         {formatPrice(vehicle.price)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-neutral-600">Year</span>
-                      <span className="text-xs text-neutral-700">
-                        {vehicle.year || 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -494,6 +548,34 @@ const InventoryContainer = ({
                         </span>
                       </div>
                     </div>
+                    {isAdminOrSalesManager && vehicle.dealer_info && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs text-neutral-600">Dealership</span>
+                        <div className="text-xs text-neutral-700 text-right max-w-[200px] space-y-0.5">
+                          {vehicle.dealer_info.dealership_name ? (
+                            <div className="font-medium text-neutral-900">
+                              {vehicle.dealer_info.dealership_name}
+                            </div>
+                          ) : (
+                            <div className="text-neutral-400">N/A</div>
+                          )}
+                          {vehicle.dealer_info.dealer_name && (
+                            <div className="text-neutral-600">
+                              {vehicle.dealer_info.dealer_name}
+                            </div>
+                          )}
+                          {vehicle.dealer_info.dealer_email && (
+                            <a
+                              href={`mailto:${vehicle.dealer_info.dealer_email}`}
+                              className="text-primary-600 hover:underline truncate block"
+                              title={vehicle.dealer_info.dealer_email}
+                            >
+                              {vehicle.dealer_info.dealer_email}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-neutral-600">Status</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getInventoryStatusColor(vehicle.inventory_status)}`}>
@@ -516,11 +598,12 @@ const InventoryContainer = ({
                         )}
                       </div>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <span className="text-xs text-neutral-600">Date Added</span>
-                      <span className="text-xs text-neutral-700">
-                        {formatDate(vehicle.post_date)}
-                      </span>
+                      <div className="text-xs text-neutral-700 text-right space-y-0.5">
+                        <div>{formatDateOnly(vehicle.post_date)}</div>
+                        <div className="text-neutral-500">{formatTimeOnly(vehicle.post_date)}</div>
+                      </div>
                     </div>
                   </div>
 
