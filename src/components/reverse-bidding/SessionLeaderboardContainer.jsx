@@ -90,6 +90,8 @@ const SessionLeaderboardContainer = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.user);
+  const userRole = user?.role;
+  const isAdminOrSalesManager = userRole === 'administrator' || userRole === 'sales_manager';
   const columnHelper = createColumnHelper();
 
   // Find current dealer's bid
@@ -126,24 +128,42 @@ const SessionLeaderboardContainer = ({
           );
         },
       }),
-      columnHelper.accessor("dealerNameAnonymized", {
-        header: "Dealer",
-        cell: (info) => {
-          const bid = info.row.original;
-          const isCurrentDealer = bid.isCurrentDealer;
-          return (
-            <span
-              className={`font-medium ${
-                isCurrentDealer
-                  ? "text-primary-600 font-semibold"
-                  : "text-neutral-700"
-              }`}
-            >
-              {bid.dealerNameAnonymized}
-            </span>
-          );
-        },
-      }),
+      // Show dealer column only for non-admin/sales_manager users
+      ...(!isAdminOrSalesManager ? [
+        columnHelper.accessor("dealerNameAnonymized", {
+          header: "Dealer",
+          cell: (info) => {
+            const bid = info.row.original;
+            const isCurrentDealer = bid.isCurrentDealer;
+            return (
+              <span
+                className={`font-medium ${
+                  isCurrentDealer
+                    ? "text-primary-600 font-semibold"
+                    : "text-neutral-700"
+                }`}
+              >
+                {bid.dealerNameAnonymized}
+              </span>
+            );
+          },
+        }),
+      ] : []),
+      // Show dealership name column only for admins and sales managers
+      ...(isAdminOrSalesManager ? [
+        columnHelper.accessor("dealershipName", {
+          header: "Dealership",
+          cell: (info) => {
+            const bid = info.row.original;
+            const dealershipName = bid.dealership_name || bid.dealershipName;
+            return (
+              <span className="text-sm text-neutral-700 font-medium">
+                {dealershipName || "N/A"}
+              </span>
+            );
+          },
+        }),
+      ] : []),
       columnHelper.accessor("productTitle", {
         header: "Vehicle",
         cell: (info) => {
@@ -244,7 +264,7 @@ const SessionLeaderboardContainer = ({
         },
       }),
     ],
-    [columnHelper, session, onWithdrawBid]
+    [columnHelper, session, onWithdrawBid, isAdminOrSalesManager]
   );
 
   const table = useReactTable({

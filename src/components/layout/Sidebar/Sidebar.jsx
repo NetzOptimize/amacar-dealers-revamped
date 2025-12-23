@@ -109,17 +109,20 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     navigate(href);
   };
 
+  // Check if user is admin or sales manager
+  const isAdminOrSalesManager = userRole === 'administrator' || userRole === 'sales_manager';
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Live Auctions', href: '/live-auctions', icon: TrendingUp },
     { name: 'Live Sessions', href: '/reverse-bidding', icon: TrendingDown },
     { name: 'Won Sessions', href: '/won-sessions', icon: Trophy },
-    { name: 'My Reverse Bids', href: '/my-reverse-bids', icon: Gavel },
+    { name: isAdminOrSalesManager ? 'All Reverse Bids' : 'My Reverse Bids', href: '/my-reverse-bids', icon: Gavel },
     { name: 'Won Auctions', href: '/won-auctions', icon: Award },
     { name: 'New customers', href: '/active-customers', icon: Users },
     // { name: 'New Customers', href: '/new-customers', icon: UserPlus  },
     { name: 'Appointments', href: '/appointments', icon: CalendarCheck },
-    { name: 'My bids', href: '/my-bids', icon: ShoppingCart },
+    { name: isAdminOrSalesManager ? 'All Bids' : 'My bids', href: '/my-bids', icon: ShoppingCart },
     { name: 'Highest Bids', href: '/highest-bids', icon: ArrowUp },
     { name: 'Active Customers', href: '/new-customers', icon: UserPlus },
     // { name: 'Active customers', href: '/active-customers', icon: Users },

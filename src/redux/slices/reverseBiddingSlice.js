@@ -136,6 +136,8 @@ const transformLeaderboard = (leaderboardData, currentDealerId) => {
                 perks: perks,
                 rank: bid.position || index + 1,
                 submittedAt: bid.created_at || bid.submitted_at,
+                dealership_name: bid.dealership_name || null,
+                dealershipName: bid.dealership_name || null,
                 isCurrentDealer: isCurrentDealer,
             };
         })
