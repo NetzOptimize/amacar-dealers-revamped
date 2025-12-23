@@ -206,6 +206,49 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
           );
         },
       }),
+      columnHelper.display({
+        id: "customerDetails",
+        header: "Customer Details",
+        cell: (info) => {
+          const session = info.row.original;
+          const customerContact = session.customerContact || session.customer_contact;
+          
+          if (!customerContact) {
+            return (
+              <div className="flex items-center text-neutral-400">
+                <span className="text-sm">N/A</span>
+              </div>
+            );
+          }
+          
+          const customerName = customerContact.name || "N/A";
+          const customerEmail = customerContact.email || null;
+          const customerPhone = customerContact.phone || null;
+          
+          return (
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-base text-neutral-900 leading-tight">
+                {customerName}
+              </span>
+              {customerEmail && (
+                <span className="text-xs text-neutral-500 leading-relaxed">
+                  {customerEmail}
+                </span>
+              )}
+              {customerPhone && (
+                <span className="text-xs text-neutral-500 leading-relaxed">
+                  {customerPhone}
+                </span>
+              )}
+              {!customerEmail && !customerPhone && (
+                <span className="text-xs text-neutral-400 italic">
+                  No contact info
+                </span>
+              )}
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor("price", {
         header: "Price",
         cell: (info) => {

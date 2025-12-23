@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Car,
@@ -11,10 +12,15 @@ import {
   FileText,
   Tag,
   ChevronRight,
+  ChevronLeft,
   Loader2,
   CheckCircle2,
   AlertCircle,
   X,
+  User,
+  Building2,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { getVehicleDetail, markVehicleSold } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -33,6 +39,9 @@ const VehicleDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const routerLocation = useLocation();
+  const { user } = useSelector((state) => state.user);
+  const userRole = user?.role;
+  const isAdminOrSalesManager = userRole === 'administrator' || userRole === 'sales_manager';
   const [vehicleData, setVehicleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,6 +49,9 @@ const VehicleDetails = () => {
   const [markingSold, setMarkingSold] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [vehicleSource, setVehicleSource] = useState(null); // 'reverse-bid' or 'car-dealer'
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // Track current carousel image
+  const initialHeaderRef = useRef(null); // Ref to track initial header position
+  const dashboardHeaderHeight = 80; // Height of DashboardLayout header (h-20 = 80px)
 
   // Fetch vehicle details on mount
   useEffect(() => {
@@ -91,27 +103,87 @@ const VehicleDetails = () => {
 
   // Handle scroll to detect when sticky header is active
   useEffect(() => {
+    if (!initialHeaderRef.current || !vehicleData) return;
+    
+    let ticking = false;
+    let currentStickyState = false;
+    let lastCalculatedPosition = 0;
+    
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      // Set sticky when scrolled past initial position (approximately 100px)
-      const shouldBeSticky = scrollPosition > 100;
-      setIsHeaderSticky(shouldBeSticky);
-      
-      // Add/remove class to body to hide DashboardLayout header
-      if (shouldBeSticky) {
-        document.body.classList.add('vehicle-details-sticky-active');
-      } else {
-        document.body.classList.remove('vehicle-details-sticky-active');
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          // Get the initial header element's position relative to viewport
+          const headerElement = initialHeaderRef.current;
+          if (!headerElement) {
+            ticking = false;
+            return;
+          }
+          
+          // Get the header's bounding box - this accounts for layout shifts
+          const headerRect = headerElement.getBoundingClientRect();
+          
+          // Calculate how far the header has scrolled from its initial position
+          // headerRect.top is the distance from viewport top to header top
+          // When headerRect.top becomes negative, the header has scrolled past the top
+          // We want to show sticky when header has scrolled past the DashboardLayout header
+          const distanceFromViewportTop = headerRect.top;
+          
+          // Use hysteresis to prevent rapid toggling
+          // Show sticky when header top is above the DashboardLayout header (negative or very close)
+          // Hide sticky when header is back in view with some buffer
+          // Account for DashboardLayout header height (80px)
+          const stickyThreshold = dashboardHeaderHeight - 10; // Show when header is 10px above dashboard header
+          const hideThreshold = dashboardHeaderHeight + 30; // Hide when header is 30px below dashboard header
+          
+          const shouldBeSticky = distanceFromViewportTop < stickyThreshold;
+          const shouldHideSticky = distanceFromViewportTop > hideThreshold;
+          
+          // Only update if there's a meaningful change to prevent micro-movements
+          const positionDelta = Math.abs(distanceFromViewportTop - lastCalculatedPosition);
+          if (positionDelta > 3) {
+            const newStickyState = shouldBeSticky || (!shouldHideSticky && currentStickyState);
+            
+            if (newStickyState !== currentStickyState) {
+              currentStickyState = newStickyState;
+              setIsHeaderSticky(newStickyState);
+              
+              // Smoothly add/remove class to body to hide DashboardLayout header
+              // Use requestAnimationFrame to ensure smooth transition
+              requestAnimationFrame(() => {
+                if (newStickyState) {
+                  document.body.classList.add('vehicle-details-sticky-active');
+                } else {
+                  document.body.classList.remove('vehicle-details-sticky-active');
+                }
+              });
+            }
+            
+            lastCalculatedPosition = distanceFromViewportTop;
+          }
+          
+          ticking = false;
+        });
+        
+        ticking = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    // Use passive listener for better performance
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen for resize to recalculate on layout changes
+    window.addEventListener('resize', handleScroll, { passive: true });
+    
+    // Initial check after a small delay to ensure DOM is ready
+    setTimeout(handleScroll, 100);
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
       // Clean up class on unmount
       document.body.classList.remove('vehicle-details-sticky-active');
     };
-  }, []);
+  }, [vehicleData, dashboardHeaderHeight]);
 
   // Prepare images array for PhotoSwipe
   const images = useMemo(() => {
@@ -144,6 +216,29 @@ const VehicleDetails = () => {
 
   const primaryImage = images[0];
   const imageCount = images.length;
+
+  // Reset carousel to first image when images change
+  useEffect(() => {
+    if (images.length > 0) {
+      setCurrentImageIndex(0);
+    }
+  }, [images.length]);
+
+  // Carousel navigation functions
+  const goToNext = (e) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const goToPrevious = (e) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goToImage = (index, e) => {
+    e?.stopPropagation();
+    setCurrentImageIndex(index);
+  };
 
   // Check if vehicle is sold
   const isSold = vehicleData?.inventory_status === "sold";
@@ -300,10 +395,14 @@ const VehicleDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Initial Header (shown when not sticky) */}
-      {!isHeaderSticky && (
-        <div className="bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 pb-6">
-          <div className="max-w-7xl mx-auto">
+      {/* Initial Header Container - always rendered for position tracking to prevent layout shifts */}
+      <div 
+        ref={initialHeaderRef}
+        className={`bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 pb-6 transition-opacity duration-300 ${
+          isHeaderSticky ? 'opacity-0 pointer-events-none invisible' : 'opacity-100 visible'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto">
             {/* Breadcrumbs */}
             <nav className="mb-4 text-sm text-neutral-600">
               <div className="flex items-center gap-2 flex-wrap">
@@ -361,15 +460,18 @@ const VehicleDetails = () => {
                 </button>
               </div>
             </div>
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Sticky Header (shown when scrolled) */}
       <div 
-        className={`fixed top-0 right-0 z-50 hidden lg:block bg-white border-b border-neutral-200 shadow-sm transition-all duration-300 lg:left-64 ${
+        className={`fixed top-0 right-0 z-50 hidden lg:block bg-white border-b border-neutral-200 shadow-sm lg:left-64 ${
           isHeaderSticky ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'
         }`}
+        style={{ 
+          transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'opacity, transform'
+        }}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -410,48 +512,124 @@ const VehicleDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Left Column - Images and Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
+            {/* Image Gallery with Carousel */}
             <Gallery>
-              <div className="relative bg-neutral-100 rounded-xl overflow-hidden">
+              <div className="relative bg-neutral-100 rounded-xl overflow-hidden group/image-container">
                 {primaryImage && images.length > 0 ? (
                   <div className="relative aspect-[4/3]">
-                    {images.map((image, index) => (
-                      <Item
-                        key={`gallery-${index}`}
-                        original={image.src}
-                        thumbnail={image.thumbnail || image.src}
-                        width={image.width}
-                        height={image.height}
-                        alt={image.alt}
-                      >
-                        {({ ref, open }) => (
-                          <img
-                            ref={ref}
-                            onClick={open}
-                            src={index === 0 ? image.src : image.thumbnail || image.src}
-                            alt={image.alt}
-                            className={`w-full h-full object-cover cursor-pointer ${
-                              index === 0 ? "block" : "hidden"
-                            }`}
-                            loading={index === 0 ? "eager" : "lazy"}
-                          />
+                    {/* Render all images as PhotoSwipe Items for gallery navigation */}
+                    {images.map((image, index) => {
+                      const isCurrent = index === currentImageIndex;
+                      return (
+                        <Item
+                          key={`gallery-${index}`}
+                          original={image.src}
+                          thumbnail={image.thumbnail || image.src}
+                          width={image.width}
+                          height={image.height}
+                          alt={image.alt}
+                        >
+                          {({ ref, open }) => (
+                            <AnimatePresence mode="wait">
+                              {isCurrent ? (
+                                <motion.div
+                                  key={`photoswipe-current-${index}`}
+                                  ref={ref}
+                                  onClick={open}
+                                  initial={{ opacity: 0, scale: 1.1 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                                  className="absolute inset-0 cursor-pointer z-10"
+                                >
+                                  <img
+                                    src={image.src}
+                                    alt={image.alt}
+                                    className="w-full h-full transition-transform duration-700 group-hover/image-container:scale-110"
+                                    style={{ objectFit: 'contain' }}
+                                    loading={index === 0 ? 'eager' : 'lazy'}
+                                  />
+                                </motion.div>
+                              ) : (
+                                <div
+                                  key={`photoswipe-hidden-${index}`}
+                                  ref={ref}
+                                  className="absolute inset-0 opacity-0 pointer-events-none -z-10"
+                                >
+                                  <img
+                                    src={image.src}
+                                    alt={image.alt}
+                                    className="w-full h-full"
+                                    style={{ objectFit: 'contain' }}
+                                    loading="lazy"
+                                  />
+                                </div>
+                              )}
+                            </AnimatePresence>
+                          )}
+                        </Item>
+                      );
+                    })}
+
+                    {/* Navigation Arrows - Only show if more than 1 image */}
+                    {images.length > 1 && (
+                      <>
+                        {/* Previous Button */}
+                        <button
+                          onClick={goToPrevious}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 backdrop-blur-md text-neutral-700 hover:bg-white hover:text-orange-600 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover/image-container:opacity-100 z-30"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+
+                        {/* Next Button */}
+                        <button
+                          onClick={goToNext}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 backdrop-blur-md text-neutral-700 hover:bg-white hover:text-orange-600 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover/image-container:opacity-100 z-30"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Carousel Navigation Bar - Bottom Center */}
+                    {images.length > 1 && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent p-4 z-30">
+                        <div className="flex items-center justify-center">
+                          {/* Image Counter */}
+                          <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-semibold">
+                            {currentImageIndex + 1}/{images.length}
+                          </div>
+                        </div>
+
+                        {/* Dot Indicators */}
+                        {images.length <= 20 && (
+                          <div className="flex items-center justify-center gap-2 mt-3">
+                            {images.map((_, index) => (
+                              <button
+                                key={index}
+                                onClick={(e) => goToImage(index, e)}
+                                className={`h-2 rounded-full transition-all duration-200 ${
+                                  index === currentImageIndex
+                                    ? 'bg-white w-8'
+                                    : 'bg-white/40 w-2 hover:bg-white/60'
+                                }`}
+                                aria-label={`Go to image ${index + 1}`}
+                              />
+                            ))}
+                          </div>
                         )}
-                      </Item>
-                    ))}
+                      </div>
+                    )}
 
                     {/* Condition Badge */}
                     <div
-                      className={`absolute top-4 right-4 px-3 py-1.5 rounded-md text-sm font-medium backdrop-blur-md text-white z-30 ${conditionColor}`}
+                      className={`absolute top-4 right-4 px-3 py-1.5 rounded-md text-sm font-medium backdrop-blur-md text-white z-40 ${conditionColor}`}
                     >
                       {conditionBadge}
                     </div>
-
-                    {/* Image Count */}
-                    {imageCount > 1 && (
-                      <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-md text-sm font-semibold backdrop-blur-md bg-black/60 text-white z-30">
-                        Show all photos ({imageCount})
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="aspect-[4/3] flex items-center justify-center bg-neutral-200 text-neutral-400">
@@ -860,6 +1038,106 @@ const VehicleDetails = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* Dealer Info Card - Only shown for admin/sales_manager */}
+            {vehicleData?.dealer_info && isAdminOrSalesManager && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-xl border border-neutral-200 p-6 shadow-lg"
+              >
+                <h3 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary-600" />
+                  Dealer Information
+                </h3>
+                <div className="space-y-4">
+                  {/* Dealership Name */}
+                  {vehicleData.dealer_info.dealership_name && (
+                    <div>
+                      <span className="text-sm text-neutral-500 flex items-center gap-1 mb-1">
+                        <Building2 className="w-3 h-3" />
+                        Dealership
+                      </span>
+                      <p className="font-semibold text-neutral-900">
+                        {vehicleData.dealer_info.dealership_name}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Dealer Name */}
+                  {vehicleData.dealer_info.dealer_name && (
+                    <div>
+                      <span className="text-sm text-neutral-500 flex items-center gap-1 mb-1">
+                        <User className="w-3 h-3" />
+                        Dealer Name
+                      </span>
+                      <p className="font-medium text-neutral-800">
+                        {vehicleData.dealer_info.dealer_name}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Email */}
+                  {vehicleData.dealer_info.dealer_email && (
+                    <div>
+                      <span className="text-sm text-neutral-500 flex items-center gap-1 mb-1">
+                        <Mail className="w-3 h-3" />
+                        Email
+                      </span>
+                      <a
+                        href={`mailto:${vehicleData.dealer_info.dealer_email}`}
+                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline break-all"
+                      >
+                        {vehicleData.dealer_info.dealer_email}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Phone */}
+                  {vehicleData.dealer_info.phone && (
+                    <div>
+                      <span className="text-sm text-neutral-500 flex items-center gap-1 mb-1">
+                        <Phone className="w-3 h-3" />
+                        Phone
+                      </span>
+                      <a
+                        href={`tel:${vehicleData.dealer_info.phone}`}
+                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                      >
+                        {vehicleData.dealer_info.phone}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Address */}
+                  {(vehicleData.dealer_info.address || 
+                    (vehicleData.dealer_info.city && vehicleData.dealer_info.state) ||
+                    vehicleData.dealer_info.zip) && (
+                    <div>
+                      <span className="text-sm text-neutral-500 flex items-center gap-1 mb-1">
+                        <MapPin className="w-3 h-3" />
+                        Address
+                      </span>
+                      <div className="font-medium text-neutral-800 space-y-0.5">
+                        {vehicleData.dealer_info.address && (
+                          <p>{vehicleData.dealer_info.address}</p>
+                        )}
+                        {(vehicleData.dealer_info.city || vehicleData.dealer_info.state || vehicleData.dealer_info.zip) && (
+                          <p className="text-neutral-600">
+                            {[
+                              vehicleData.dealer_info.city,
+                              vehicleData.dealer_info.state,
+                              vehicleData.dealer_info.zip
+                            ].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
         </div>
