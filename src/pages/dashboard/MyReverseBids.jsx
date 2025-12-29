@@ -12,6 +12,7 @@ import {
 import { Gavel, Loader2, RefreshCw } from "lucide-react";
 import Pagination from "@/components/common/Pagination/Pagination";
 import ReverseBidsContainer from "@/components/reverse-bidding/ReverseBidsContainer";
+import MyReverseBidsSkeleton from "@/components/skeletons/ReverseBidding/MyReverseBidsSkeleton";
 
 const MyReverseBids = () => {
   const dispatch = useDispatch();
@@ -98,14 +99,7 @@ const MyReverseBids = () => {
   };
 
   if (isLoading && !bids.length) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 pb-12 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
-          <p className="text-neutral-600">Loading your reverse bids...</p>
-        </div>
-      </div>
-    );
+    return <MyReverseBidsSkeleton />;
   }
 
   return (

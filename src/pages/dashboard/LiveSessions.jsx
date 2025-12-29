@@ -11,6 +11,7 @@ import {
   updateSessionFromSSE,
 } from "@/redux/slices/reverseBiddingSlice";
 import LiveSessionsContainer from "@/components/reverse-bidding/LiveSessionsContainer";
+import LiveSessionsSkeleton from "@/components/skeletons/ReverseBidding/LiveSessionsSkeleton";
 import { TrendingDown, Loader2 } from "lucide-react";
 import Cookies from "js-cookie";
 
@@ -280,15 +281,8 @@ const LiveSessions = () => {
     },
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 pb-12 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
-          <p className="text-neutral-600">Loading live sessions...</p>
-        </div>
-      </div>
-    );
+  if (isLoading && !sessions.length) {
+    return <LiveSessionsSkeleton />;
   }
 
   return (

@@ -18,6 +18,7 @@ import {
   Loader2
 } from "lucide-react";
 import { format } from "date-fns";
+import AdminSessionsSkeleton from "@/components/skeletons/ReverseBidding/AdminSessionsSkeleton";
 
 const AdminSessions = () => {
   const navigate = useNavigate();
@@ -275,9 +276,7 @@ const AdminSessions = () => {
 
         {/* Sessions Table */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          </div>
+          <AdminSessionsSkeleton />
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-800">{error}</p>

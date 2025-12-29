@@ -10,6 +10,7 @@ import {
   Loader2,
   BarChart3
 } from "lucide-react";
+import AdminDealerStatsSkeleton from "@/components/skeletons/ReverseBidding/AdminDealerStatsSkeleton";
 
 const AdminDealerStats = () => {
   const [dealers, setDealers] = useState([]);
@@ -195,9 +196,7 @@ const AdminDealerStats = () => {
 
         {/* Dealers Table */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          </div>
+          <AdminDealerStatsSkeleton />
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-800">{error}</p>

@@ -12,6 +12,7 @@ import {
   Calendar,
   Loader2
 } from "lucide-react";
+import AdminAnalyticsSkeleton from "@/components/skeletons/ReverseBidding/AdminAnalyticsSkeleton";
 
 const AdminAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -192,9 +193,7 @@ const AdminAnalytics = () => {
         </motion.div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          </div>
+          <AdminAnalyticsSkeleton />
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-800">{error}</p>
