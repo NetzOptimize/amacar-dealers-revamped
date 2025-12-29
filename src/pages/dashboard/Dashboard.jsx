@@ -5,15 +5,30 @@ import RecentVehiclesSection from "../../components/dashboard/RecentVehiclesSect
 import RecentCustomers from "@/components/dashboard/RecentCustomers/RecentCustomers";
 import QuickActions from "@/components/dashboard/QuickActions/QuickActions";
 import DashboardSkeleton from "@/components/skeletons/dashboard/DashboardSkeleton";
+import ReverseBiddingContent from "@/components/dashboard/ReverseBiddingContent/ReverseBiddingContent";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("active-bidding");
+  const [activeBiddingRefreshKey, setActiveBiddingRefreshKey] = useState(0);
+  const [reverseBiddingRefreshKey, setReverseBiddingRefreshKey] = useState(0);
 
   // Dashboard sections now handle their own loading states
   useEffect(() => {
     // Set loading to false immediately since components handle their own loading
     setIsLoading(false);
   }, []);
+
+  // Handle tab change and trigger refresh for the tab being switched to
+  const handleTabChange = (newTab) => {
+    if (newTab === "active-bidding" && activeTab !== "active-bidding") {
+      setActiveBiddingRefreshKey(prev => prev + 1); // Increment to force remount and refetch
+    } else if (newTab === "reverse-bidding" && activeTab !== "reverse-bidding") {
+      setReverseBiddingRefreshKey(prev => prev + 1); // Increment to force remount and refetch
+    }
+    setActiveTab(newTab);
+  };
 
   // Show skeleton while loading
   if (isLoading) {
@@ -58,12 +73,13 @@ const Dashboard = () => {
 
   return (
     <motion.div 
-      className="min-h-screen bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 mb-8"
+      className="min-h-screen bg-neutral-50 pt-10 md:pt-24 pb-12 px-4"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <div className="px-4 md:px-6">
+      <div className="w-full mx-auto px-4 md:px-6">
+        {/* Header Section */}
         <motion.div 
           className="mb-8"
           variants={headerVariants}
@@ -82,39 +98,72 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            Welcome to your dealer portal. Here's a summary of your auction
-            activity.
+            Welcome to your dealer portal. Here's a summary of your auction activity.
           </motion.p>
         </motion.div>
 
-         {/* Statistics Cards */}
-         <motion.div variants={statsVariants}>
-           <DashboardStats />
-         </motion.div>
+        {/* Modern Segmented Tab Control */}
+        <motion.div 
+          className="mb-8"
+          variants={headerVariants}
+        >
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <div className="inline-flex bg-white rounded-lg p-1 shadow-sm border border-neutral-200">
+              <TabsList className="bg-transparent p-0 h-auto w-auto inline-flex gap-0">
+                <TabsTrigger 
+                  value="active-bidding" 
+                  className="relative px-5 py-2 text-sm font-medium text-neutral-600 rounded-md transition-all duration-200 data-[state=active]:bg-primary-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:text-neutral-900 hover:bg-neutral-50/50 data-[state=active]:hover:bg-primary-600 data-[state=active]:hover:text-white"
+                >
+                  Active Bidding
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="reverse-bidding"
+                  className="relative px-5 py-2 text-sm font-medium text-neutral-600 rounded-md transition-all duration-200 data-[state=active]:bg-primary-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:text-neutral-900 hover:bg-neutral-50/50 data-[state=active]:hover:bg-primary-600 data-[state=active]:hover:text-white"
+                >
+                  Reverse Bidding
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-         {/* Recent Vehicles Section */}
-         <motion.div 
-           className="mt-12"
-           variants={statsVariants}
-         >
-           <RecentVehiclesSection />
-         </motion.div>
+            {/* Active Bidding Tab Content */}
+            <TabsContent value="active-bidding" className="mt-8 w-full">
+              <motion.div
+                key={`active-bidding-${activeBiddingRefreshKey}`}
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="space-y-12 w-full"
+              >
+                {/* Statistics Cards */}
+                <motion.div variants={statsVariants}>
+                  <DashboardStats key={`stats-${activeBiddingRefreshKey}`} />
+                </motion.div>
 
-         {/* Recent Customers Section */}
-         <motion.div 
-           className="mt-12"
-           variants={statsVariants}
-         >
-           <RecentCustomers />
-         </motion.div>
+                {/* Recent Vehicles Section */}
+                <motion.div variants={statsVariants}>
+                  <RecentVehiclesSection key={`vehicles-${activeBiddingRefreshKey}`} />
+                </motion.div>
 
-         {/* Quick Actions Section */}
-         {/* <motion.div 
-           className="mt-12"
-           variants={statsVariants}
-         >
-           <QuickActions />
-         </motion.div> */}
+                {/* Recent Customers Section */}
+                <motion.div variants={statsVariants}>
+                  <RecentCustomers key={`customers-${activeBiddingRefreshKey}`} />
+                </motion.div>
+              </motion.div>
+            </TabsContent>
+
+            {/* Reverse Bidding Tab Content */}
+            <TabsContent value="reverse-bidding" className="mt-8 w-full">
+              <motion.div
+                key={`reverse-bidding-${reverseBiddingRefreshKey}`}
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <ReverseBiddingContent key={`reverse-content-${reverseBiddingRefreshKey}`} />
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
        </div>
      </motion.div>
    );
