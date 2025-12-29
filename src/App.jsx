@@ -39,7 +39,6 @@ import AdminSessions from "./pages/dashboard/AdminSessions";
 import AdminSessionDetails from "./pages/dashboard/AdminSessionDetails";
 import AdminDealerStats from "./pages/dashboard/AdminDealerStats";
 import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
-import AdminSettings from "./pages/dashboard/AdminSettings";
 import PrivacyPolicy from "./pages/privacy-policy/PrivacyPolicy";
 import TermsOfService from "./pages/terms-conditions/TermsOfService";
 import DealershipAgreement from "./pages/dealership-agreement/DealershipAgreement";
@@ -356,16 +355,6 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <AdminAnalytics />
-                  </DashboardLayout>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin/settings"
-              element={
-                <PrivateRoute>
-                  <DashboardLayout>
-                    <AdminSettings />
                   </DashboardLayout>
                 </PrivateRoute>
               }

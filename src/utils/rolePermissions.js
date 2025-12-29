@@ -198,14 +198,6 @@ export const canAccessAdminAnalytics = (userRole) => {
   return canAccessAdminReverseBidding(userRole);
 };
 
-/**
- * Check if user can access admin settings
- * @param {string} userRole - The user's role
- * @returns {boolean} - Whether user can access admin settings
- */
-export const canAccessAdminSettings = (userRole) => {
-  return canAccessAdminReverseBidding(userRole);
-};
 
 // ===== REPORT API ACCESS CONTROL FUNCTIONS =====
 
@@ -452,7 +444,6 @@ export const getUserPermissions = (userRole, user = null) => {
     canAccessAdminSessions: canAccessAdminSessions(userRole),
     canAccessAdminDealerStats: canAccessAdminDealerStats(userRole),
     canAccessAdminAnalytics: canAccessAdminAnalytics(userRole),
-    canAccessAdminSettings: canAccessAdminSettings(userRole),
   };
 };
 
@@ -519,7 +510,6 @@ export const ROUTE_PERMISSIONS = {
   '/admin/sessions/:id': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
   '/admin/dealer-stats': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
   '/admin/analytics': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
-  '/admin/settings': [USER_ROLES.ADMINISTRATOR, USER_ROLES.SALES_MANAGER],
 };
 
 /**

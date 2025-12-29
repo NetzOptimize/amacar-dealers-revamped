@@ -886,27 +886,6 @@ export const exportAdminData = async (type, format = 'csv', params = {}) => {
   }
 };
 
-// Get settings (admin)
-export const getAdminSettings = async () => {
-  try {
-    const response = await reverseBidApi.get('/admin/settings');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching admin settings:', error);
-    throw error;
-  }
-};
-
-// Update settings (admin)
-export const updateAdminSettings = async (settings) => {
-  try {
-    const response = await reverseBidApi.post('/admin/settings', { settings });
-    return response.data;
-  } catch (error) {
-    console.error('Error updating admin settings:', error);
-    throw error;
-  }
-};
 
 // Get real-time statistics (admin)
 export const getAdminRealtimeStats = async () => {
