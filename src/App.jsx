@@ -8,6 +8,7 @@ import DashboardLayout from "./components/layout/DashboardLayout/DashboardLayout
 import ActiveCustomers from "./pages/dashboard/ActiveCustomers";
 import Appointments from "./pages/dashboard/Appointments";
 import Dashboard from "./pages/dashboard/Dashboard";
+import Customers from "./pages/dashboard/Customers";
 import DealerShips from "./pages/dashboard/DealerShips";
 import HighestBids from "./pages/dashboard/HighestBids";
 import LiveAuctions from "./pages/dashboard/LiveAuctions";
@@ -355,6 +356,16 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <AdminAnalytics />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/customers"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <Customers />
                   </DashboardLayout>
                 </PrivateRoute>
               }

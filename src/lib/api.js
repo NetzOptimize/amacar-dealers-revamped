@@ -909,4 +909,27 @@ export const closeAdminSession = async (sessionId) => {
   }
 };
 
+// Get all customers (admin)
+export const getAllCustomers = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/customers', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
+};
+
+// Update customer info (admin)
+export const updateCustomer = async (customerId, data) => {
+  try {
+    const response = await reverseBidApi.put(`/admin/customers/${customerId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    throw error;
+  }
+};
+
+export { carDealerApi };
 export default api;

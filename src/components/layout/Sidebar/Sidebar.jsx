@@ -142,7 +142,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     ...(canAccessAdminReverseBidding ? [
       { name: 'Admin Sessions', href: '/admin/sessions', icon: Activity },
       { name: 'Dealer Statistics', href: '/admin/dealer-stats', icon: BarChart3 },
-      { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp }
+      { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+      { name: 'All Customers', href: '/admin/customers', icon: Users }
     ] : []),
 
   ];

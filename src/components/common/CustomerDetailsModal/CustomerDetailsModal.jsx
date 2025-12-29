@@ -7,7 +7,8 @@ const CustomerDetailsModal = ({
   isOpen,
   onClose,
   customerId,
-  customerName = "Customer"
+  customerName = "Customer",
+  customerData = null // Optional: pass customer data directly
 }) => {
   const [customer, setCustomer] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,12 +34,41 @@ const CustomerDetailsModal = ({
     }
   }, [customerId])
 
-  // Fetch customer details when modal opens
+  // Use provided customer data or fetch from API
   useEffect(() => {
-    if (isOpen && customerId) {
-      fetchCustomerDetails();
+    if (isOpen) {
+      if (customerData) {
+        // Transform customer data from /admin/customers format to modal format
+        setCustomer({
+          basic_info: {
+            display_name: customerData.name || customerName,
+            first_name: customerData.name?.split(' ')[0] || '',
+            last_name: customerData.name?.split(' ').slice(1).join(' ') || '',
+            email: customerData.email || '',
+            avatar: null
+          },
+          contact: {
+            email: customerData.email || '',
+            phone: customerData.phone || ''
+          },
+          address: {
+            street: customerData.address || '',
+            city: customerData.city || '',
+            state: customerData.state || '',
+            zip: customerData.zip || '',
+            country: 'US'
+          },
+          account: {
+            status: 'active',
+            account_created: customerData.join_date || ''
+          }
+        });
+        setIsLoading(false);
+      } else if (customerId) {
+        fetchCustomerDetails();
+      }
     }
-  }, [isOpen, customerId, fetchCustomerDetails]);
+  }, [isOpen, customerId, customerData, customerName, fetchCustomerDetails]);
 
 
 
