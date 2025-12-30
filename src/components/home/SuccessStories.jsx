@@ -1,83 +1,90 @@
-import { Star, TrendingUp, Users, Award, Quote, CheckCircle } from "lucide-react";
-import { AnimatedSection } from "../common/AnimatedSection/AnimatedSection";
+import { TrendingUp, BarChart3, Award, Sparkles } from "lucide-react";
 import { motion } from 'framer-motion';
-import TestimonialCarousel from "./Testimonials";
 
-export default function SuccessStories ()  {
-    return (
-      <section id="success-stories" className="py-18 bg-gradient-to-br from-white to-[#F8F9FA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSection className="text-center mb-20">
-            <div className="inline-block px-4 py-2 bg-[#4F46E5]/10 rounded-full mb-6">
-              <span className="text-[#4F46E5] font-semibold text-sm">Success Stories</span>
-            </div>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1A1A1A] mb-6 leading-tight">
-              Stay Ahead. Win More Deals.
-            </h2>
-            <p className="text-xl text-[#4A4A4A] max-w-3xl mx-auto leading-relaxed">
-              Access insights and tools that give you a competitive edge in the automotive market
-            </p>
-          </AnimatedSection>
-  
-          {/* Feature Cards */}
-          <div className="grid md:grid-cols-3 gap-8 mb-20">
-            {[
-              {
-                icon: <TrendingUp className="w-8 h-8" />,
-                title: "Boost Profit with Smarter Bidding",
-                description: "Learn advanced bidding strategies that help maximize your ROI while securing quality inventory at competitive prices.",
-                gradient: "from-[#4F46E5] to-[#2E93E1]"
-              },
-              {
-                icon: <Users className="w-8 h-8" />,
-                title: "Digital Tools to Scale Inventory",
-                description: "Discover how technology can streamline your operations and scale your dealership efficiently with our integrated platform.",
-                gradient: "from-[#15A9D8] to-[#2E93E1]"
-              },
-              {
-                icon: <Award className="w-8 h-8" />,
-                title: "Dealers Achieving Real Results",
-                description: "Read success stories from dealers who have transformed their business using our platform and increased their profits.",
-                gradient: "from-[#2E93E1] to-[#2E93E1]"
-              }
-            ].map((item, index) => (
-              <AnimatedSection key={index}>
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ 
-                    y: -8, 
-                    scale: 1.02,
-                    boxShadow: "0 25px 50px rgba(79, 70, 229, 0.15)" 
-                  }}
-                  className="group p-8 bg-white rounded-2xl border border-[#E5E5E5] shadow-lg hover:shadow-2xl transition-all duration-200 relative overflow-hidden"
-                >
-                  {/* Subtle background gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-200`} />
-                  
-                  <div className={`w-16 h-16 bg-gradient-to-r ${item.gradient} rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110  duration-100 shadow-lg`}>
-                    {item.icon}
-                  </div>
-                  
-                  <h3 className="text-xl font-bold text-[#1A1A1A] mb-4 group-hover:text-[#4F46E5] transition-colors duration-300">
-                    {item.title}
-                  </h3>
-                  
-                  <p className="text-[#4A4A4A] leading-relaxed group-hover:text-[#1A1A1A] transition-colors duration-300">
-                    {item.description}
-                  </p>
-                  
-                  {/* Hover indicator */}
-                  <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${item.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`} />
-                </motion.div>
-              </AnimatedSection>
-            ))}
-          </div>
-  
-  
+export default function SuccessStories() {
+  return (
+    <section id="success-stories" className="relative py-15 lg:py-18py-15 lg:py-18 bg-white overflow-hidden">
+      {/* Subtle Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 flex flex-col">
+        {/* Section Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100/50 mb-6 mx-auto"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+          <span className="text-xs font-medium text-indigo-900">Success Stories</span>
+        </motion.div>
+
+        {/* Section Title */}
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight mb-4 text-center"
+        >
+          Success Stories
+        </motion.h2>
+
+        {/* Section Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex justify-center mb-12"
+        >
+          <p className="text-lg text-gray-600 leading-relaxed max-w-3xl text-center">
+            See how top-performing dealerships outperform their markets by acquiring smarter and selling faster with America's only dual-market automotive platform.
+          </p>
+        </motion.div>
+
+        {/* Feature Cards */}
+        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+          {[
+            {
+              icon: <TrendingUp className="w-6 h-6" />,
+              title: "Boost Profit on Both Sides of the Transaction",
+              description: "Smarter auction bidding for acquisition. Smarter price competition for selling. Higher margins, lower lead cost, faster turnover. More Sales, More F&I opportunity, Best CSI.",
+            },
+            {
+              icon: <BarChart3 className="w-6 h-6" />,
+              title: "Digital Tools to Scale Inventory and Sales",
+              description: "From data-driven analytics to inventory integrations, everything is optimized for your store's growth.",
+            },
+            {
+              icon: <Award className="w-6 h-6" />,
+              title: "Dealers Achieving Real Results",
+              description: "Stories from dealers who transformed their buying and selling operations with Amacar.",
+            }
+          ].map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              className="p-6 lg:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all h-full flex flex-col"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 flex items-center justify-center text-white mb-4 flex-shrink-0">
+                {item.icon}
+              </div>
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 leading-tight">
+                {item.title}
+              </h3>
+              
+              <p className="text-base text-gray-600 leading-relaxed flex-grow">
+                {item.description}
+              </p>
+            </motion.div>
+          ))}
         </div>
-      </section>
-    );
-  };
-  
+      </div>
+    </section>
+  );
+}

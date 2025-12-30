@@ -45,6 +45,7 @@ const MyBidsContainer = ({ auctions = [], userRole = null }) => {
     navigate(`/vehicle-details/${vehicleId}`, {
       state: {
         productId: vehicleId,
+        source: 'car-dealer', // My bids are from auctions (customer vehicles)
       },
     });
   };

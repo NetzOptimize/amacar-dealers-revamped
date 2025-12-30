@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import userReducer from './slices/userSlice';
 import appointmentReducers from './slices/appointmentSlice';
+import reverseBiddingReducer from './slices/reverseBiddingSlice';
 import persistReducer from 'redux-persist/es/persistReducer';
 import { userPersistConfig } from './persistConfig';
 import persistStore from 'redux-persist/es/persistStore';
@@ -9,7 +10,8 @@ import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist
 export const store = configureStore({
   reducer: {
     user: persistReducer(userPersistConfig, userReducer),
-    appointments: appointmentReducers
+    appointments: appointmentReducers,
+    reverseBidding: reverseBiddingReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

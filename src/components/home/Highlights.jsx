@@ -1,51 +1,56 @@
 import { motion } from 'framer-motion';
-import { Zap, Link2, BarChart3 } from 'lucide-react';
-import { AnimatedSection } from "../common/AnimatedSection/AnimatedSection";
+import { Zap, Link2, BarChart3, Sparkles } from 'lucide-react';
 
+export default function Highlights() {
+  const highlights = [
+    {
+      icon: <Zap className="w-6 h-6" />,
+      title: "Early Access to Seller Listings",
+      description: "Instant priority to motivated private sellers—way before your competition."
+    },
+    {
+      icon: <BarChart3 className="w-6 h-6" />,
+      title: "Exclusive Access to Ready Buyers",
+      description: "Your inventory is offered directly to buyers who already selected the exact year, make, and model they want. You compete by lowering the price—buyers choose the best offer. You get confirmed appointments and closed sales, higher closing ratios and minimum response time."
+    },
+    {
+      icon: <Link2 className="w-6 h-6" />,
+      title: "Live Bidding. Instant Results. Two Ways.",
+      description: "Live Auction Bidding – Acquire Cars: Bid live on private seller vehicles with full transparency high quality photos. Reverse Bidding – Sell More Cars: Compete by lowering the sales price until the timer ends and the buyer accepts an offer."
+    }
+  ];
 
-export default function Highlights () {
-    const highlights = [
-      {
-        icon: <Zap className="w-8 h-8" />,
-        title: "Early access to seller listings",
-        description: "Get first access to motivated sellers before your competition. Our platform gives you priority access to quality inventory listings."
-      },
-      {
-        icon: <BarChart3 className="w-8 h-8" />,
-        title: "Live bidding, instant results",
-        description: "Participate in real-time auctions with immediate feedback. Win quality inventory with transparent, competitive bidding processes."
-      },
-      {
-        icon: <Link2 className="w-8 h-8" />,
-        title: "API-powered inventory sync",
-        description: "Seamlessly integrate with your existing systems. Our robust API ensures your inventory stays synchronized across all platforms."
-      }
-    ];
-  
-    return (
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {highlights.map((item, index) => (
-              <AnimatedSection key={index}>
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="p-8 bg-white rounded-2xl shadow-lg border border-[#E5E5E5]"
-                >
-                  <div className="w-14 h-14 bg-[#4A90E2] rounded-xl flex items-center justify-center text-white mb-6">
-                    {item.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-[#1A1A1A] mb-3">
-                    {item.title}
-                  </h3>
-                  <p className="text-[#4A4A4A] leading-relaxed">
-                    {item.description}
-                  </p>
-                </motion.div>
-              </AnimatedSection>
-            ))}
-          </div>
+  return (
+    <section className="relative py-15 lg:py-18 bg-white overflow-hidden">
+      {/* Subtle Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+          {highlights.map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              className="p-6 lg:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all h-full flex flex-col"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 flex items-center justify-center text-white mb-4 flex-shrink-0">
+                {item.icon}
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3 leading-tight">
+                {item.title}
+              </h3>
+              <p className="text-base text-gray-600 leading-relaxed flex-grow">
+                {item.description}
+              </p>
+            </motion.div>
+          ))}
         </div>
-      </section>
-    );
-  };
+      </div>
+    </section>
+  );
+}

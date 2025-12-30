@@ -30,6 +30,7 @@ const ContactInfo = ({ formData, updateFormData, errors, isInvitedUser, invitati
       transition: {
         duration: 0.5,
         staggerChildren: 0.1,
+
       },
     },
   };

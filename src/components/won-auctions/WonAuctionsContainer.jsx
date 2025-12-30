@@ -64,6 +64,7 @@ const WonAuctionsContainer = ({
     navigate(`/vehicle-details/${vehicleId}`, {
       state: {
         productId: vehicleId,
+        source: 'car-dealer', // Won auctions are customer vehicles
       },
     });
   };

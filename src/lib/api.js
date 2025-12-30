@@ -414,4 +414,522 @@ export const cancelInvitation = async (token) => {
   }
 };
 
+// Reverse Bidding API functions
+// Note: These endpoints are under /wp-json/reverse-bid/v1/ namespace
+// We need to construct the full path since baseURL is dealer-portal/v1
+const getReverseBidBaseURL = () => {
+  let baseURL = import.meta.env.VITE_BASE_URL || 'https://dealer.amacar.ai/wp-json/dealer-portal/v1';
+  
+  // Extract base URL without the /dealer-portal/v1 part
+  // Handle both cases: with and without trailing slash
+  if (baseURL.includes('/dealer-portal/v1')) {
+    baseURL = baseURL.replace('/dealer-portal/v1', '');
+  }
+  
+  // Ensure we have /wp-json in the path
+  if (!baseURL.includes('/wp-json')) {
+    // If baseURL is just a domain, add /wp-json
+    if (!baseURL.endsWith('/')) {
+      baseURL += '/wp-json';
+    } else {
+      baseURL += 'wp-json';
+    }
+  }
+  
+  return baseURL;
+};
+
+// Create a separate axios instance for reverse-bid endpoints
+const reverseBidApi = axios.create({
+  baseURL: getReverseBidBaseURL() + '/reverse-bid/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
+});
+
+// Add auth interceptor for reverse-bid API
+reverseBidApi.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Create a separate axios instance for car-dealer endpoints
+const carDealerApi = axios.create({
+  baseURL: getReverseBidBaseURL() + '/car-dealer/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
+});
+
+// Add auth interceptor for car-dealer API
+carDealerApi.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Get dealer's reverse bidding sessions
+export const getDealerSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer sessions:', error);
+    throw error;
+  }
+};
+
+// Get dealer inventory (all vehicles owned by dealer)
+export const getDealerInventory = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/inventory', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer inventory:', error);
+    throw error;
+  }
+};
+
+// Get won sessions (sessions won by the logged-in dealer)
+export const getWonSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/won-sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching won sessions:', error);
+    throw error;
+  }
+};
+
+// Get vehicle details from reverse-bid API (for dealer-owned vehicles)
+const getVehicleDetailFromReverseBid = async (vehicleId) => {
+  try {
+    const response = await reverseBidApi.get(`/dealer/vehicles/${vehicleId}`);
+    if (response.data && response.data.success) {
+      // Add source field to identify this as a dealer vehicle
+      return {
+        ...response.data,
+        source: 'reverse-bid',
+        isDealerVehicle: true
+      };
+    }
+    return response.data;
+  } catch (error) {
+    // Return null if vehicle not found or unauthorized (will try car-dealer API)
+    if (error.response?.status === 403 || error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+// Get vehicle details from car-dealer API (for customer-owned vehicles)
+const getVehicleDetailFromCarDealer = async (vehicleId) => {
+  try {
+    const response = await carDealerApi.get(`/vehicle/details/${vehicleId}`);
+    
+    // Transform nested response structure to flat structure expected by VehicleDetails component
+    if (response.data && response.data.success && response.data.vehicle) {
+      const vehicle = response.data.vehicle;
+      const basicInfo = vehicle.basic_info || {};
+      const location = vehicle.location || {};
+      const cashOffer = vehicle.cash_offer || {};
+      const auction = vehicle.auction || {};
+      
+      // Flatten the structure
+      const flattenedData = {
+        // Basic info
+        id: basicInfo.product_id,
+        product_id: basicInfo.product_id,
+        title: basicInfo.title,
+        vin: basicInfo.vin,
+        year: basicInfo.year,
+        make: basicInfo.make,
+        model: basicInfo.model,
+        trim: basicInfo.trim,
+        mileage: basicInfo.mileage,
+        odometer: basicInfo.mileage, // Alias for compatibility
+        exterior_color: basicInfo.exterior_color,
+        interior_color: basicInfo.interior_color,
+        body_type: basicInfo.body_type,
+        transmission: basicInfo.transmission,
+        engine_type: basicInfo.engine_type,
+        powertrain_description: basicInfo.powertrain_description,
+        features: basicInfo.features || [],
+        
+        // Location
+        zip_code: location.zip_code,
+        city: location.city,
+        state: location.state,
+        coordinates: location.coordinates,
+        
+        // Cash offer
+        offer_amount: cashOffer.offer_amount,
+        offer_date: cashOffer.offer_date,
+        offer_expiration: cashOffer.offer_expiration,
+        offer_terms: cashOffer.offer_terms,
+        
+        // Auction
+        is_auctionable: auction.is_auctionable,
+        auction_started: auction.auction_started,
+        auction_started_at: auction.auction_started_at,
+        auction_ends_at: auction.auction_ends_at,
+        is_sent_to_salesforce: auction.is_sent_to_salesforce,
+        remaining_seconds: auction.remaining_seconds,
+        is_active: auction.is_active,
+        in_working_hours: auction.in_working_hours,
+        
+        // Images (already includes damage_data)
+        images: vehicle.images || [],
+        
+        // Condition assessment
+        condition_assessment: vehicle.condition_assessment || {},
+        
+        // Bids
+        bids: vehicle.bids || [],
+        
+        // Dates
+        created_at: vehicle.created_at,
+        updated_at: vehicle.updated_at,
+        date_created: vehicle.created_at,
+        date_modified: vehicle.updated_at,
+        
+        // User info
+        user: vehicle.user || {},
+        
+        // Additional fields for compatibility
+        description: '', // Will be populated from post content if needed
+        short_description: '', // Will be populated if needed
+        status: 'publish', // Default status
+        new_used: basicInfo.new_used || 'U', // Default to used
+        condition: basicInfo.new_used || 'U',
+        price: cashOffer.offer_amount || 0,
+        regular_price: cashOffer.offer_amount || 0,
+        inventory_status: 'available', // Default
+      };
+      
+      return {
+        success: true,
+        data: flattenedData,
+        source: 'car-dealer',
+        isDealerVehicle: false,
+        // Also include the nested structure for CarDetailsView component
+        vehicle: vehicle
+      };
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle details from car-dealer API:', error);
+    throw error;
+  }
+};
+
+// Get vehicle details with automatic fallback
+// Tries reverse-bid API first (for dealer-owned vehicles), then car-dealer API (for customer-owned vehicles)
+// This endpoint is used for VehicleDetails page
+// @param {string} vehicleId - The vehicle/product ID
+// @param {string} source - Optional: 'car-dealer' for customer vehicles (live auctions, won auctions) or 'reverse-bid' for dealer vehicles (reverse bids, won sessions, inventory)
+export const getVehicleDetail = async (vehicleId, source = null) => {
+  try {
+    // If source is explicitly provided, use that API directly
+    if (source === 'car-dealer') {
+      const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+      if (carDealerResponse && carDealerResponse.success) {
+        return carDealerResponse;
+      }
+      // If car-dealer fails, return error (don't fallback to reverse-bid)
+      return {
+        success: false,
+        message: 'Vehicle not found in car-dealer API'
+      };
+    }
+    
+    if (source === 'reverse-bid') {
+      const reverseBidResponse = await getVehicleDetailFromReverseBid(vehicleId);
+      if (reverseBidResponse && reverseBidResponse.success) {
+        return reverseBidResponse;
+      }
+      // If reverse-bid fails, return error (don't fallback to car-dealer)
+      return {
+        success: false,
+        message: 'Vehicle not found in reverse-bid API'
+      };
+    }
+    
+    // If no source provided, try reverse-bid API first (for dealer-owned vehicles from sessions/inventory)
+    const reverseBidResponse = await getVehicleDetailFromReverseBid(vehicleId);
+    if (reverseBidResponse && reverseBidResponse.success) {
+      return reverseBidResponse;
+    }
+    
+    // If reverse-bid API doesn't return the vehicle, try car-dealer API (for customer-owned vehicles from auctions)
+    const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+    if (carDealerResponse && carDealerResponse.success) {
+      return carDealerResponse;
+    }
+    
+    // If both fail, return error
+    return {
+      success: false,
+      message: 'Vehicle not found'
+    };
+  } catch (error) {
+    console.error('Error fetching vehicle details:', error);
+    // If reverse-bid API throws an error (not 403/404), try car-dealer API as fallback
+    if (error.response?.status !== 403 && error.response?.status !== 404) {
+      try {
+        const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
+        if (carDealerResponse && carDealerResponse.success) {
+          return carDealerResponse;
+        }
+      } catch (fallbackError) {
+        console.error('Error fetching vehicle details from car-dealer API (fallback):', fallbackError);
+      }
+    }
+    throw error;
+  }
+};
+
+// Mark vehicle as sold
+export const markVehicleSold = async (vehicleId) => {
+  try {
+    const response = await reverseBidApi.post(`/dealer/vehicles/${vehicleId}/mark-sold`);
+    return response.data;
+  } catch (error) {
+    console.error('Error marking vehicle as sold:', error);
+    throw error;
+  }
+};
+
+// Get dealer's reverse bids (all bids by the logged-in dealer)
+export const getMyReverseBids = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/my-bids', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching my reverse bids:', error);
+    throw error;
+  }
+};
+
+// Get dealer's bids for a specific session
+export const getDealerSessionBids = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/dealer-bids`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer session bids:', error);
+    throw error;
+  }
+};
+
+// Get detailed session information
+export const getDealerSessionDetails = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/details`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dealer session details:', error);
+    throw error;
+  }
+};
+
+// Get eligible products for a session
+export const getEligibleProducts = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/sessions/${sessionId}/eligible-products`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching eligible products:', error);
+    throw error;
+  }
+};
+
+// Submit a bid for a session
+export const submitReverseBid = async (sessionId, bidData) => {
+  try {
+    const response = await reverseBidApi.post(`/sessions/${sessionId}/bids`, bidData);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting bid:', error);
+    throw error;
+  }
+};
+
+// Revise an existing bid
+export const reviseBid = async (bidId, bidData) => {
+  try {
+    const response = await reverseBidApi.patch(`/bids/${bidId}`, bidData);
+    return response.data;
+  } catch (error) {
+    console.error('Error revising bid:', error);
+    throw error;
+  }
+};
+
+// Withdraw a bid
+export const withdrawReverseBid = async (bidId) => {
+  try {
+    const response = await reverseBidApi.post(`/bids/${bidId}/withdraw`);
+    return response.data;
+  } catch (error) {
+    console.error('Error withdrawing bid:', error);
+    throw error;
+  }
+};
+
+// Get dealer's bid history
+export const getDealerBidHistory = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/dealer/bid-history', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching bid history:', error);
+    throw error;
+  }
+};
+
+// ===== ADMIN API FUNCTIONS =====
+// These endpoints require admin or sales_manager role
+
+// Get all sessions (admin)
+export const getAdminSessions = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/sessions', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin sessions:', error);
+    throw error;
+  }
+};
+
+// Get session details (admin)
+export const getAdminSessionDetails = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/admin/sessions/${sessionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin session details:', error);
+    throw error;
+  }
+};
+
+// Get session bids (admin)
+export const getAdminSessionBids = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.get(`/admin/sessions/${sessionId}/bids`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin session bids:', error);
+    throw error;
+  }
+};
+
+// Get dealer statistics (admin)
+export const getAdminDealerStats = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/dealers', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin dealer stats:', error);
+    throw error;
+  }
+};
+
+// Get analytics (admin)
+export const getAdminAnalytics = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/analytics', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin analytics:', error);
+    throw error;
+  }
+};
+
+// Export data (admin)
+export const exportAdminData = async (type, format = 'csv', params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/export', {
+      params: { type, format, ...params },
+      responseType: format === 'csv' ? 'blob' : 'json',
+      headers: format === 'csv' ? { 'Accept': 'text/csv' } : {}
+    });
+    
+    // If CSV, return blob directly; if JSON, return data
+    if (format === 'csv') {
+      return response.data; // This is already a blob
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error exporting admin data:', error);
+    throw error;
+  }
+};
+
+
+// Get real-time statistics (admin)
+export const getAdminRealtimeStats = async () => {
+  try {
+    const response = await reverseBidApi.get('/admin/realtime-stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin realtime stats:', error);
+    throw error;
+  }
+};
+
+// Close session manually (admin)
+export const closeAdminSession = async (sessionId) => {
+  try {
+    const response = await reverseBidApi.post(`/admin/sessions/${sessionId}/close`);
+    return response.data;
+  } catch (error) {
+    console.error('Error closing admin session:', error);
+    throw error;
+  }
+};
+
+// Get all customers (admin)
+export const getAllCustomers = async (params = {}) => {
+  try {
+    const response = await reverseBidApi.get('/admin/customers', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
+};
+
+// Update customer info (admin)
+export const updateCustomer = async (customerId, data) => {
+  try {
+    const response = await reverseBidApi.put(`/admin/customers/${customerId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    throw error;
+  }
+};
+
+export { carDealerApi };
 export default api;

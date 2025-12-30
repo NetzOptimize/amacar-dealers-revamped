@@ -29,6 +29,7 @@ const VehicleCard = ({ vehicle, onBidRefresh }) => {
     navigate(`/vehicle-details/${vehicle.id}`, {
       state: {
         productId: vehicle.id,
+        source: 'reverse-bid', // Dashboard vehicles are typically from inventory (dealer vehicles)
       },
     });
   };

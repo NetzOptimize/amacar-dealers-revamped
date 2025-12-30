@@ -117,12 +117,20 @@ export const useReportData = (startDate, endDate) => {
         const appointments = response.appointments || {};
         const revenue = response.revenue || {};
         
+        // Calculate changes (placeholder - would need previous period data)
+        const calculateChange = (current, previous = 0) => {
+          if (previous === 0) return current > 0 ? '+100%' : '0%';
+          const change = ((current - previous) / previous) * 100;
+          return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+        };
+        
         setStats([
           { 
             id: 'auctions-joined',
             title: 'Auctions Joined', 
             value: auctions.auctions_joined || 0, 
-            change: '0%',
+            change: calculateChange(auctions.auctions_joined || 0),
+            trend: auctions.auctions_joined > 0 ? 'up' : 'neutral',
             icon: 'Gavel',
             isActive: false
           },
@@ -130,7 +138,8 @@ export const useReportData = (startDate, endDate) => {
             id: 'win-rate',
             title: 'Win Rate', 
             value: `${auctions.win_rate || 0}%`, 
-            change: '0%',
+            change: calculateChange(auctions.win_rate || 0),
+            trend: auctions.win_rate > 50 ? 'up' : 'down',
             icon: 'Target',
             isActive: false
           },
@@ -138,7 +147,8 @@ export const useReportData = (startDate, endDate) => {
             id: 'total-customers',
             title: 'Total Customers', 
             value: customers.total_customers || 0, 
-            change: '0%',
+            change: calculateChange(customers.total_customers || 0),
+            trend: customers.total_customers > 0 ? 'up' : 'neutral',
             icon: 'Users',
             isActive: false
           },
@@ -146,7 +156,8 @@ export const useReportData = (startDate, endDate) => {
             id: 'bids-placed',
             title: 'Bids Placed', 
             value: bidding.bids_placed || 0, 
-            change: '0%',
+            change: calculateChange(bidding.bids_placed || 0),
+            trend: bidding.bids_placed > 0 ? 'up' : 'neutral',
             icon: 'Flame',
             isActive: false
           },
@@ -154,7 +165,8 @@ export const useReportData = (startDate, endDate) => {
             id: 'appointments',
             title: 'Appointments', 
             value: appointments.total_appointments || 0, 
-            change: '0%',
+            change: calculateChange(appointments.total_appointments || 0),
+            trend: appointments.total_appointments > 0 ? 'up' : 'neutral',
             icon: 'Calendar',
             isActive: false
           },
@@ -162,7 +174,8 @@ export const useReportData = (startDate, endDate) => {
             id: 'estimated-revenue',
             title: 'Estimated Revenue', 
             value: `$${(revenue.estimated_revenue || 0).toLocaleString()}`, 
-            change: '0%',
+            change: calculateChange(revenue.estimated_revenue || 0),
+            trend: revenue.estimated_revenue > 0 ? 'up' : 'neutral',
             icon: 'DollarSign',
             isActive: false
           },

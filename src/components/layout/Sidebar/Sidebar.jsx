@@ -17,7 +17,14 @@ import {
   Home,
   BarChart,
   ArrowUp,
-  UserPlus2
+  UserPlus2,
+  TrendingDown,
+  Gavel,
+  Trophy,
+  Settings,
+  Activity,
+  BarChart3,
+  Warehouse
 } from 'lucide-react';
 import { logoutUser } from '@/redux/slices/userSlice';
 import LogoutModal from '@/components/ui/LogoutUI/LogoutModal';
@@ -60,7 +67,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     canAccessInvitedDealerships,
     canAccessSalesManagers,
     canAccessPartnerDealers,
-    canAccessSubscriptionCancellationRequest
+    canAccessSubscriptionCancellationRequest,
+    canAccessAdminReverseBidding
   } = permissions;
 
   // Check if user should show warning modal and get warning type
@@ -101,17 +109,25 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     navigate(href);
   };
 
+  // Check if user is admin or sales manager
+  const isAdminOrSalesManager = userRole === 'administrator' || userRole === 'sales_manager';
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Live Auctions', href: '/live-auctions', icon: TrendingUp },
+    { name: 'Live Sessions', href: '/reverse-bidding', icon: TrendingDown },
+    { name: 'Won Sessions', href: '/won-sessions', icon: Trophy },
+    { name: isAdminOrSalesManager ? 'All Reverse Bids' : 'My Reverse Bids', href: '/my-reverse-bids', icon: Gavel },
     { name: 'Won Auctions', href: '/won-auctions', icon: Award },
     { name: 'New customers', href: '/active-customers', icon: Users },
     // { name: 'New Customers', href: '/new-customers', icon: UserPlus  },
     { name: 'Appointments', href: '/appointments', icon: CalendarCheck },
-    { name: 'My bids', href: '/my-bids', icon: ShoppingCart },
+    { name: isAdminOrSalesManager ? 'All Bids' : 'My bids', href: '/my-bids', icon: ShoppingCart },
     { name: 'Highest Bids', href: '/highest-bids', icon: ArrowUp },
     { name: 'Active Customers', href: '/new-customers', icon: UserPlus },
     // { name: 'Active customers', href: '/active-customers', icon: Users },
+    ...(userRole === 'dealer' ? [{ name: 'My inventory', href: '/inventory', icon: Warehouse }] : []),
+    ...((userRole === 'administrator' || userRole === 'sales_manager') ? [{ name: 'Inventory', href: '/inventory', icon: Warehouse }] : []),
     ...(canAccessDealershipUsers ? [{ name: 'Dealership users', href: '/dealership-users', icon: UserPlus2 }] : []),
     ...(canAccessDealerships ? [{ name: 'DealerShips', href: '/dealerships', icon: Home }] : []),
     ...(canAccessInvitedDealerships ? [{ name: 'Invited Dealerships', href: '/invited-dealerships', icon: UserPlus }] : []),
@@ -121,6 +137,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     // Conditionally include DealerShips based on user role
     { name: 'Reports', href: '/reports', icon: BarChart },
+
+    // Admin Reverse Bidding Pages
+    ...(canAccessAdminReverseBidding ? [
+      { name: 'Admin Sessions', href: '/admin/sessions', icon: Activity },
+      { name: 'Dealer Statistics', href: '/admin/dealer-stats', icon: BarChart3 },
+      { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+      { name: 'All Customers', href: '/admin/customers', icon: Users }
+    ] : []),
 
   ];
 
@@ -166,7 +190,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // 4. Not a manual toggle
     if (isMobile && !isCollapsed && prevPathRef.current !== location.pathname && !isManualToggle) {
       // Check if current path is a dashboard page
-      const dashboardPages = ['/dashboard', '/live-auctions', '/won-auctions', '/new-customers', '/active-customers', '/my-bids', '/appointments', '/highest-bids', '/dealership-users', '/partner-dealers', '/reports', '/profile', '/sales-managers', '/subscription-cancellation-requests', '/dealerships', '/invited-dealerships'];
+      const dashboardPages = ['/dashboard', '/live-sessions', '/live-auctions', '/reverse-bidding', '/won-sessions', '/my-reverse-bids', '/won-auctions', '/new-customers', '/active-customers', '/inventory', '/my-bids', '/appointments', '/highest-bids', '/dealership-users', '/partner-dealers', '/reports', '/profile', '/sales-managers', '/subscription-cancellation-requests', '/dealerships', '/invited-dealerships'];
       const isDashboardPage = dashboardPages.some(page => location.pathname.startsWith(page));
 
       if (isDashboardPage) {

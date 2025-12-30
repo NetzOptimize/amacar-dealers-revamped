@@ -8,6 +8,7 @@ import DashboardLayout from "./components/layout/DashboardLayout/DashboardLayout
 import ActiveCustomers from "./pages/dashboard/ActiveCustomers";
 import Appointments from "./pages/dashboard/Appointments";
 import Dashboard from "./pages/dashboard/Dashboard";
+import Customers from "./pages/dashboard/Customers";
 import DealerShips from "./pages/dashboard/DealerShips";
 import HighestBids from "./pages/dashboard/HighestBids";
 import LiveAuctions from "./pages/dashboard/LiveAuctions";
@@ -24,11 +25,21 @@ import VehicleDetails from "./pages/dashboard/VehicleDetails";
 import CheckoutPage from "./components/stripe/CheckoutPage";
 import PaymentSuccess from "./components/stripe/PaymentSuccess";
 import { SearchProvider } from "./context/SearchContext";
+import { SSEProvider } from "./context/SSEContext";
 import InvitedDealerships from "./pages/dashboard/InvitedDealerships";
 import SalesManagers from "./pages/dashboard/SalesManagers";
 import DealershipUsers from "./pages/dashboard/DealershipUsers";
 import SubscriptionCancellationRequests from "./pages/dashboard/SubscriptionCancellationRequests";
 import PartnerDealers from "./pages/dashboard/PartnerDealers";
+import LiveSessions from "./pages/dashboard/LiveSessions";
+import SessionLeaderboard from "./pages/dashboard/SessionLeaderboard";
+import WonSessions from "./pages/dashboard/WonSessions";
+import MyReverseBids from "./pages/dashboard/MyReverseBids";
+import Inventory from "./pages/dashboard/Inventory";
+import AdminSessions from "./pages/dashboard/AdminSessions";
+import AdminSessionDetails from "./pages/dashboard/AdminSessionDetails";
+import AdminDealerStats from "./pages/dashboard/AdminDealerStats";
+import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
 import PrivacyPolicy from "./pages/privacy-policy/PrivacyPolicy";
 import TermsOfService from "./pages/terms-conditions/TermsOfService";
 import DealershipAgreement from "./pages/dealership-agreement/DealershipAgreement";
@@ -50,7 +61,8 @@ function App() {
 
   return (
     <SearchProvider>
-      <div className="min-h-screen bg-slate-50">
+      <SSEProvider>
+        <div className="min-h-screen bg-slate-50">
         <Toaster
           position="top-right"
           toastOptions={{
@@ -104,6 +116,16 @@ function App() {
                 <PrivateRoute>
                   <DashboardLayout>
                     <Dashboard />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/live-sessions"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <LiveSessions />
                   </DashboardLayout>
                 </PrivateRoute>
               }
@@ -179,6 +201,16 @@ function App() {
               }
             />
             <Route
+              path="/inventory"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <Inventory />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/dealership-users"
               element={
                 <PrivateRoute>
@@ -249,6 +281,96 @@ function App() {
               }
             />
             <Route
+              path="/reverse-bidding"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <LiveSessions />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reverse-bidding/session/:sessionId"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <SessionLeaderboard />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/won-sessions"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <WonSessions />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-reverse-bids"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <MyReverseBids />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/sessions"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminSessions />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/sessions/:id"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminSessionDetails />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/dealer-stats"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminDealerStats />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <AdminAnalytics />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/customers"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <Customers />
+                  </DashboardLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <PrivateRoute>
@@ -285,6 +407,7 @@ function App() {
         {/* {!hideHeaderFooter && <BackToTop />} */}
         <BackToTop />
       </div>
+      </SSEProvider>
     </SearchProvider>
   );
 }
