@@ -284,7 +284,7 @@ const ReverseBiddingContent = () => {
             variant="outline"
             size="sm"
             className="cursor-pointer px-4 sm:px-8 py-2 sm:py-3 text-xs sm:text-sm font-medium hover:bg-primary-50 hover:border-primary-300 transition-all duration-200 w-full sm:w-auto"
-            onClick={() => navigate('/reverse-bidding/sessions')}
+            onClick={() => navigate('/reverse-bidding')}
           >
             View All Sessions
             <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
@@ -404,7 +404,7 @@ const ReverseBiddingContent = () => {
             variant="outline"
             size="sm"
             className="cursor-pointer px-4 sm:px-8 py-2 sm:py-3 text-xs sm:text-sm font-medium hover:bg-primary-50 hover:border-primary-300 transition-all duration-200 w-full sm:w-auto"
-            onClick={() => navigate('/reverse-bidding/my-bids')}
+            onClick={() => navigate('/my-reverse-bids')}
           >
             View All Bids
             <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
