@@ -6,11 +6,15 @@ import DealershipSkeleton from "@/components/skeletons/Dealership/DealershipSkel
 import Pagination from "@/components/common/Pagination/Pagination";
 import InviteDealershipsModal from "@/components/ui/InviteDealershipsModal";
 import ResendAndCancelInvitationModal from "@/components/ui/ResendAndCancelInvitationModal";
-import { Building2, UserPlus, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
-import { getInvitations, resendInvitation, cancelInvitation } from "@/lib/api";
+import { Building2, UserPlus, Mail, Clock, CheckCircle, XCircle, UserCheck, UserX } from "lucide-react";
+import { getInvitations, resendInvitation, cancelInvitation, getPendingApprovals, approveDealer, rejectDealer } from "@/lib/api";
 import { useSelector } from "react-redux";
 
 const InvitedDealerships = () => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState('invitations'); // 'invitations' or 'pending'
+  
+  // Invitations state
   const [invitations, setInvitations] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -21,10 +25,20 @@ const InvitedDealerships = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   
+  // Pending approvals state
+  const [pendingDealers, setPendingDealers] = useState([]);
+  const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
+  const [pendingTotalPages, setPendingTotalPages] = useState(1);
+  const [pendingTotalCount, setPendingTotalCount] = useState(0);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingError, setPendingError] = useState(null);
+  const [pendingPagination, setPendingPagination] = useState({});
+  
   // Confirmation modal state
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  const [confirmationAction, setConfirmationAction] = useState(null); // 'resend' or 'cancel'
+  const [confirmationAction, setConfirmationAction] = useState(null); // 'resend', 'cancel', 'approve', or 'reject'
   const [selectedInvitation, setSelectedInvitation] = useState(null);
+  const [selectedPendingDealer, setSelectedPendingDealer] = useState(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const { user } = useSelector((state) => state.user);
@@ -217,10 +231,126 @@ const InvitedDealerships = () => {
     },
   };
 
+  // Transform pending dealer data to match component expectations
+  const transformPendingDealerData = (apiData) => {
+    return apiData.map((item) => {
+      // Format dealer position (replace hyphens with spaces and capitalize)
+      const formatDealerPosition = (position) => {
+        if (!position || position === 'N/A') return 'N/A';
+        return position
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
+      // Format dealer group (capitalize first letter)
+      const formatDealerGroup = (group) => {
+        if (!group || group === 'N/A') return 'N/A';
+        return group.charAt(0).toUpperCase() + group.slice(1);
+      };
+
+      return {
+        id: item.id,
+        name: item.dealership_name || 'N/A',
+        email: item.email || "N/A",
+        firstName: item.first_name || 'N/A',
+        lastName: item.last_name || 'N/A',
+        fullName: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'N/A',
+        phone: item.phone || "N/A",
+        city: item.city || "N/A",
+        state: item.state || "N/A",
+        zip: item.zip || "N/A",
+        street: "N/A",
+        status: "Pending Approval",
+        role: "Dealer",
+        salesManager: "N/A",
+        joinDate: item.registration_date,
+        registrationDate: item.registration_date,
+        registrationDateFormatted: item.registration_date_formatted || item.registration_date,
+        address: [
+          item.city,
+          item.state,
+          item.zip,
+        ]
+          .filter(Boolean)
+          .join(", ") || "Address not provided",
+        totalSales: 0,
+        vehiclesInStock: 0,
+        rating: 0,
+        latitude: null,
+        longitude: null,
+        userId: item.user_id,
+        updatedAt: item.registration_date,
+        dealerCode: item.dealer_code || 'N/A',
+        dealerPosition: formatDealerPosition(item.dealer_position),
+        dealerGroup: formatDealerGroup(item.dealer_group),
+      };
+    });
+  };
+
+  // Fetch pending approvals data from API
+  const fetchPendingApprovals = useCallback(async (page = 1, perPage = 20, isRetry = false) => {
+    try {
+      setPendingLoading(true);
+      if (!isRetry) {
+        setPendingError(null);
+      }
+
+      const response = await retryWithBackoff(() =>
+        getPendingApprovals(page, perPage)
+      );
+
+      if (response.success) {
+        const transformedData = transformPendingDealerData(response.data);
+        setPendingDealers(transformedData);
+        setPendingPagination(response.pagination);
+        setPendingTotalPages(response.pagination.total_pages || 1);
+        setPendingTotalCount(parseInt(response.pagination.total) || 0);
+      } else {
+        throw new Error(response.message || "Failed to fetch pending approvals");
+      }
+    } catch (error) {
+      const errorInfo = handleApiError(error);
+      setPendingError(errorInfo);
+      toast.error(errorInfo.message || "Failed to load pending approvals. Please try again.");
+    } finally {
+      setPendingLoading(false);
+    }
+  }, [retryWithBackoff, handleApiError]);
+
+  // Handle approve dealer
+  const handleApproveDealer = (dealerId) => {
+    const dealer = pendingDealers.find(d => d.id === dealerId || d.userId === dealerId);
+    if (dealer) {
+      setSelectedPendingDealer(dealer);
+      setConfirmationAction('approve');
+      setIsConfirmationModalOpen(true);
+    }
+  };
+
+  // Handle reject dealer
+  const handleRejectDealer = (dealerId) => {
+    const dealer = pendingDealers.find(d => d.id === dealerId || d.userId === dealerId);
+    if (dealer) {
+      setSelectedPendingDealer(dealer);
+      setConfirmationAction('reject');
+      setIsConfirmationModalOpen(true);
+    }
+  };
+
   // Load invitations data on component mount and when page changes
   useEffect(() => {
-    fetchInvitations(currentPage, itemsPerPage);
-  }, [currentPage, fetchInvitations]);
+    if (activeTab === 'invitations') {
+      fetchInvitations(currentPage, itemsPerPage);
+    }
+  }, [currentPage, fetchInvitations, activeTab]);
+
+  // Load pending approvals data on component mount and when page changes
+  useEffect(() => {
+    if (activeTab === 'pending') {
+      fetchPendingApprovals(pendingCurrentPage, itemsPerPage);
+    }
+  }, [pendingCurrentPage, fetchPendingApprovals, activeTab]);
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -252,30 +382,57 @@ const InvitedDealerships = () => {
   };
 
   const handleConfirmAction = async () => {
-    if (!selectedInvitation || !confirmationAction) return;
+    if (!confirmationAction) return;
 
     setIsActionLoading(true);
     try {
       let response;
       if (confirmationAction === 'resend') {
+        if (!selectedInvitation) return;
         response = await resendInvitation(selectedInvitation.token);
-      } else {
+        if (response.success) {
+          toast.success('Invitation resent successfully!');
+          fetchInvitations(currentPage, itemsPerPage);
+        }
+      } else if (confirmationAction === 'cancel') {
+        if (!selectedInvitation) return;
         response = await cancelInvitation(selectedInvitation.token);
+        if (response.success) {
+          toast.success('Invitation canceled successfully!');
+          fetchInvitations(currentPage, itemsPerPage);
+        }
+      } else if (confirmationAction === 'approve') {
+        if (!selectedPendingDealer) return;
+        const userId = selectedPendingDealer.userId || selectedPendingDealer.id;
+        response = await approveDealer(userId);
+        if (response.success) {
+          toast.success('Dealer approved successfully!');
+          fetchPendingApprovals(pendingCurrentPage, itemsPerPage);
+        }
+      } else if (confirmationAction === 'reject') {
+        if (!selectedPendingDealer) return;
+        const userId = selectedPendingDealer.userId || selectedPendingDealer.id;
+        response = await rejectDealer(userId);
+        if (response.success) {
+          toast.success('Dealer rejected successfully!');
+          fetchPendingApprovals(pendingCurrentPage, itemsPerPage);
+        }
       }
 
-      if (response.success) {
-        const actionText = confirmationAction === 'resend' ? 'resent' : 'canceled';
-        toast.success(`Invitation ${actionText} successfully!`);
-        fetchInvitations(currentPage, itemsPerPage);
+      if (response && !response.success) {
+        const actionText = confirmationAction === 'resend' ? 'resend' : 
+                          confirmationAction === 'cancel' ? 'cancel' :
+                          confirmationAction === 'approve' ? 'approve' : 'reject';
+        toast.error(response.message || `Failed to ${actionText}. Please try again.`);
+      } else if (response && response.success) {
         handleCloseConfirmationModal();
-      } else {
-        const actionText = confirmationAction === 'resend' ? 'resend' : 'cancel';
-        toast.error(response.message || `Failed to ${actionText} invitation`);
       }
     } catch (error) {
-      console.error(`Error ${confirmationAction}ing invitation:`, error);
-      const actionText = confirmationAction === 'resend' ? 'resend' : 'cancel';
-      toast.error(`Failed to ${actionText} invitation. Please try again.`);
+      console.error(`Error ${confirmationAction}ing:`, error);
+      const actionText = confirmationAction === 'resend' ? 'resend' : 
+                        confirmationAction === 'cancel' ? 'cancel' :
+                        confirmationAction === 'approve' ? 'approve' : 'reject';
+      toast.error(`Failed to ${actionText}. Please try again.`);
     } finally {
       setIsActionLoading(false);
     }
@@ -285,6 +442,7 @@ const InvitedDealerships = () => {
     setIsConfirmationModalOpen(false);
     setConfirmationAction(null);
     setSelectedInvitation(null);
+    setSelectedPendingDealer(null);
     setIsActionLoading(false);
   };
 
@@ -296,8 +454,27 @@ const InvitedDealerships = () => {
     setIsInviteModalOpen(false);
   };
 
-  if (loading) {
-  return (
+  // Handle page change for pending approvals
+  const handlePendingPageChange = (page) => {
+    setPendingCurrentPage(page);
+  };
+
+  if (loading && activeTab === 'invitations') {
+    return (
+      <motion.div
+        className="space-y-6 min-h-screen bg-gray-50 pt-28 px-8 md:px-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <DealershipSkeleton />
+      </motion.div>
+    );
+  }
+
+  if (pendingLoading && activeTab === 'pending') {
+    return (
       <motion.div
         className="space-y-6 min-h-screen bg-gray-50 pt-28 px-8 md:px-12"
         initial={{ opacity: 0 }}
@@ -338,29 +515,100 @@ const InvitedDealerships = () => {
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ duration: 0.2 }}
             >
-              <Mail className="w-5 h-5 text-orange-600" />
+              {activeTab === 'pending' ? (
+                <Clock className="w-5 h-5 text-orange-600" />
+              ) : (
+                <Mail className="w-5 h-5 text-orange-600" />
+              )}
             </motion.div>
             <div>
               <h2 className="text-2xl font-semibold text-neutral-900">
-                Invited Dealerships
+                {activeTab === 'pending' ? 'Pending Approvals' : 'Invited Dealerships'}
               </h2>
               <p className="text-sm text-neutral-600">
-                Pending dealership invitations and status
+                {activeTab === 'pending' 
+                  ? 'Dealer registrations awaiting approval'
+                  : 'Pending dealership invitations and status'}
               </p>
             </div>
           </motion.div>
-          <motion.button
-            onClick={handleOpenInviteModal}
-            className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          {activeTab === 'invitations' && (
+            <motion.button
+              onClick={handleOpenInviteModal}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <UserPlus className="w-4 h-4" />
+              Invite Dealership
+            </motion.button>
+          )}
+        </motion.div>
+
+        {/* Tabs */}
+        <motion.div
+          className="flex gap-2 mb-6 border-b border-neutral-200"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <button
+            onClick={() => {
+              setActiveTab('pending');
+              setPendingCurrentPage(1);
+            }}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative ${
+              activeTab === 'pending'
+                ? 'text-orange-600'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
           >
-            <UserPlus className="w-4 h-4" />
-            Invite Dealership
-          </motion.button>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Pending Approval
+              {pendingTotalCount > 0 && (
+                <span className="bg-orange-100 text-orange-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  {pendingTotalCount}
+                </span>
+              )}
+            </div>
+            {activeTab === 'pending' && (
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-600"
+                layoutId="activeTab"
+              />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('invitations');
+              setCurrentPage(1);
+            }}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative ${
+              activeTab === 'invitations'
+                ? 'text-orange-600'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Invited Dealerships
+              {totalCount > 0 && (
+                <span className="bg-orange-100 text-orange-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  {totalCount}
+                </span>
+              )}
+            </div>
+            {activeTab === 'invitations' && (
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-600"
+                layoutId="activeTab"
+              />
+            )}
+          </button>
         </motion.div>
 
         <motion.div
@@ -368,7 +616,73 @@ const InvitedDealerships = () => {
           initial="hidden"
           animate="visible"
         >
-          {error ? (
+          {activeTab === 'pending' ? (
+            // Pending Approvals Tab Content
+            <>
+              {pendingError ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                    <XCircle className="w-8 h-8 text-red-500" />
+                  </div>
+                  <div className="text-red-500 text-lg mb-2 font-semibold">
+                    Error Loading Pending Approvals
+                  </div>
+                  <div className="text-red-400 text-sm mb-4">
+                    {pendingError.message}
+                  </div>
+                  <button
+                    onClick={() => fetchPendingApprovals(pendingCurrentPage, itemsPerPage)}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : pendingDealers.length > 0 ? (
+                <>
+                  {user?.role == "administrator" || user?.role == "sales_manager" ? (
+                    <DealershipContainer
+                      dealerships={pendingDealers}
+                      currentPage={pendingCurrentPage}
+                      totalPages={pendingTotalPages}
+                      totalCount={pendingTotalCount}
+                      onPageChange={handlePendingPageChange}
+                      onViewDealership={() => {}}
+                      onEditDealership={() => {}}
+                      onDeleteDealership={() => {}}
+                      onContactDealership={() => {}}
+                      onActivateDealership={handleApproveDealer}
+                      onDeactivateDealership={handleRejectDealer}
+                      isPendingApprovalView={true}
+                    />
+                  ) : (
+                    <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12 text-center">
+                      <div className="text-neutral-500 text-lg mb-2">
+                        You are not authorized to view pending approvals
+                      </div>
+                      <div className="text-neutral-400 text-sm">
+                        Please contact your administrator to request access
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="text-neutral-500 text-lg mb-2">
+                    No pending approvals
+                  </div>
+                  <div className="text-neutral-400 text-sm mb-4">
+                    All dealer registrations have been processed
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            // Invitations Tab Content
+            <>
+              {error ? (
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12 text-center">
               {error.type === "permission" ? (
                 <>
@@ -471,7 +785,7 @@ const InvitedDealerships = () => {
             </div>
           ) : invitations.length > 0 ? (
             <>
-              {user?.role == "admin" || user?.role == "sales_manager" ? (
+              {user?.role == "administrator" || user?.role == "sales_manager" ? (
                 <DealershipContainer
                   dealerships={invitations}
                   currentPage={currentPage}
@@ -520,10 +834,12 @@ const InvitedDealerships = () => {
               </button>
             </div>
           )}
+            </>
+          )}
         </motion.div>
 
         <AnimatePresence>
-          {totalPages > 1 && (
+          {activeTab === 'invitations' && totalPages > 1 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -534,6 +850,21 @@ const InvitedDealerships = () => {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
+                className="w-full max-w-md mb-4"
+              />
+            </motion.div>
+          )}
+          {activeTab === 'pending' && pendingTotalPages > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Pagination
+                currentPage={pendingCurrentPage}
+                totalPages={pendingTotalPages}
+                onPageChange={handlePendingPageChange}
                 className="w-full max-w-md mb-4"
               />
             </motion.div>
@@ -556,7 +887,11 @@ const InvitedDealerships = () => {
           onClose={handleCloseConfirmationModal}
           onConfirm={handleConfirmAction}
           actionType={confirmationAction}
-          dealershipName={selectedInvitation?.name || ''}
+          dealershipName={
+            selectedInvitation?.name || 
+            selectedPendingDealer?.name || 
+            ''
+          }
           isLoading={isActionLoading}
         />
       </motion.div>

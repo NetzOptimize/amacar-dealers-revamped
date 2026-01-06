@@ -65,6 +65,7 @@ const DealershipContainer = ({
   onResendInvitation = () => {},
   onCancelInvitation = () => {},
   isInvitationView = false,
+  isPendingApprovalView = false,
 }) => {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState([]);
@@ -166,7 +167,62 @@ const DealershipContainer = ({
     ];
 
     // Add columns based on view type
-    if (isInvitationView) {
+    if (isPendingApprovalView) {
+      // For pending approval view: Show more detailed information
+      baseColumns.push(
+        columnHelper.accessor("firstName", {
+          header: "Contact Name",
+          cell: ({ row }) => (
+            <div className="text-sm text-neutral-700">
+              {row.original.firstName} {row.original.lastName}
+            </div>
+          ),
+        }),
+        columnHelper.accessor("phone", {
+          header: "Phone",
+          cell: ({ getValue }) => (
+            <div className="text-sm text-neutral-700">{getValue()}</div>
+          ),
+        }),
+        columnHelper.accessor("city", {
+          header: "Location",
+          cell: ({ row }) => (
+            <div className="text-sm text-neutral-700">
+              {row.original.state
+                ? `${row.original.city}, ${row.original.state}`
+                : row.original.city}
+            </div>
+          ),
+        }),
+        columnHelper.accessor("dealerCode", {
+          header: "Dealer Code",
+          cell: ({ getValue }) => (
+            <div className="text-sm text-neutral-700 font-medium">{getValue()}</div>
+          ),
+        }),
+        columnHelper.accessor("registrationDate", {
+          header: "Registered",
+          cell: ({ row }) => {
+            const dateStr = row.original.registrationDateFormatted || row.original.registrationDate;
+            if (!dateStr || dateStr === 'N/A') return <div className="text-sm text-neutral-700">N/A</div>;
+            
+            // Parse the formatted date or raw date
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return <div className="text-sm text-neutral-700">N/A</div>;
+            
+            return (
+              <div className="text-sm text-neutral-700">
+                {date.toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
+              </div>
+            );
+          },
+        }),
+      );
+    } else if (isInvitationView) {
       // For invitation view: First Name, Last Name
       baseColumns.push(
         columnHelper.accessor("firstName", {
@@ -192,9 +248,13 @@ const DealershipContainer = ({
           ),
         }),
         columnHelper.accessor("city", {
-          header: "City",
-          cell: ({ getValue }) => (
-            <div className="text-sm text-neutral-700">{getValue()}</div>
+          header: isPendingApprovalView ? "Location" : "City",
+          cell: ({ row }) => (
+            <div className="text-sm text-neutral-700">
+              {isPendingApprovalView && row.original.state
+                ? `${row.original.city}, ${row.original.state}`
+                : row.original.city}
+            </div>
           ),
         })
       );
@@ -209,6 +269,7 @@ const DealershipContainer = ({
           const statusColors = {
             Active: "bg-green-100 text-green-800",
             Pending: "bg-yellow-100 text-yellow-800",
+            "Pending Approval": "bg-yellow-100 text-yellow-800",
             Inactive: "bg-red-100 text-red-800",
             Expired: "bg-gray-100 text-gray-800",
             Accepted: "bg-blue-100 text-blue-800",
@@ -234,8 +295,8 @@ const DealershipContainer = ({
       })
     );
 
-    // Add Sales Manager column only for regular dealership view
-    if (!isInvitationView) {
+    // Add Sales Manager column only for regular dealership view (not for invitations or pending approvals)
+    if (!isInvitationView && !isPendingApprovalView) {
       baseColumns.push(
         columnHelper.accessor("salesManager", {
           header: "Sales Manager",
@@ -283,7 +344,25 @@ const DealershipContainer = ({
                     </DropdownMenuItem>
                   )} */}
 
-                {isInvitationView ? (
+                {isPendingApprovalView ? (
+                  // Pending approval actions
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => onActivateDealership(row.original.id)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-green-50 hover:to-green-100 hover:text-green-700 focus:bg-green-50 focus:text-green-700 focus:outline-none transition-all duration-200 group"
+                    >
+                      <UserCheck className="w-4 h-4 text-neutral-500 group-hover:text-green-600 group-focus:text-green-600 transition-colors duration-200" />
+                      <span>Accept</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDeactivateDealership(row.original.id)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-700 focus:bg-red-50 focus:text-red-700 focus:outline-none transition-all duration-200 group"
+                    >
+                      <UserX className="w-4 h-4 text-neutral-500 group-hover:text-red-600 group-focus:text-red-600 transition-colors duration-200" />
+                      <span>Reject</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : isInvitationView ? (
                   // Invitation-specific actions based on status
                   <>
                     {/* Show Resend Invitation for Cancelled and Pending statuses */}
@@ -362,6 +441,7 @@ const DealershipContainer = ({
     onResendInvitation,
     onCancelInvitation,
     isInvitationView,
+    isPendingApprovalView,
     canUpdateDeleteDealerships
   ]);
 
@@ -642,7 +722,29 @@ const DealershipContainer = ({
                       </DropdownMenuItem>
                     )}
 
-                    {isInvitationView ? (
+                    {isPendingApprovalView ? (
+                      // Pending approval actions for mobile
+                      <>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            onActivateDealership(row.original.id)
+                          }
+                          className="cursor-pointer flex items-center px-3 py-2.5 text-sm text-green-700 hover:bg-green-50 hover:text-green-900 rounded-md transition-colors duration-150 focus:bg-green-50 focus:text-green-900 focus:outline-none"
+                        >
+                          <UserCheck className="w-4 h-4 mr-3 text-green-500" />
+                          <span className="font-medium">Accept</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            onDeactivateDealership(row.original.id)
+                          }
+                          className="cursor-pointer flex items-center px-3 py-2.5 text-sm text-red-700 hover:bg-red-50 hover:text-red-900 rounded-md transition-colors duration-150 focus:bg-red-50 focus:text-red-900 focus:outline-none"
+                        >
+                          <UserX className="w-4 h-4 mr-3 text-red-500" />
+                          <span className="font-medium">Reject</span>
+                        </DropdownMenuItem>
+                      </>
+                    ) : isInvitationView ? (
                       // Invitation-specific actions for mobile based on status
                       <>
                         {/* Show Resend Invitation for Cancelled and Pending statuses */}

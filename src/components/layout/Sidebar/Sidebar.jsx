@@ -82,6 +82,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     if (!hasValidRole) return { show: false, type: null };
 
+    // Check user status (pending or rejected) - highest priority
+    const userStatus = user.user_status_details?.status;
+    if (userStatus === "pending") {
+      return { show: true, type: "pending" };
+    } else if (userStatus === "rejected") {
+      return { show: true, type: "rejected" };
+    }
+
     // Check account status
     const isAccountInactive = user.user_status_details?.account_status === "inactive";
     const isSubscriptionInactive = user.subscription_status === "inactive";

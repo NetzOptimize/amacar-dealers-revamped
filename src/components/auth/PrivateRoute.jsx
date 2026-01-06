@@ -18,12 +18,26 @@ function PrivateRoute({ children }) {
     return <Navigate to="/" replace />;
   }
 
-  if(user && (user.account_status === "inactive" || user.subscription_status === "inactive")) {
-     // Allow inactive users to access the profile page to see their status
-    if (location.pathname === "/profile") {
-      return children;
+  // Check if user has restricted access (pending, rejected, inactive account, or inactive subscription)
+  if (user) {
+    const userStatus = user.user_status_details?.status;
+    const isAccountInactive = user.user_status_details?.account_status === "inactive";
+    const isSubscriptionInactive = user.subscription_status === "inactive";
+    
+    // Check if user has any restriction
+    const hasRestriction = userStatus === "pending" || 
+                          userStatus === "rejected" || 
+                          isAccountInactive || 
+                          isSubscriptionInactive;
+    
+    if (hasRestriction) {
+      // Allow restricted users to access the profile page to see their status
+      if (location.pathname === "/profile") {
+        return children;
+      }
+      // For other pages, redirect to profile (the modal will be shown by Sidebar)
+      return <Navigate to="/profile" replace/>;
     }
-    return <Navigate to="/profile" replace/>
   }
   
   const userRole = user?.role;

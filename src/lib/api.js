@@ -414,6 +414,42 @@ export const cancelInvitation = async (token) => {
   }
 };
 
+// Pending Approvals API functions
+export const getPendingApprovals = async (page = 1, perPage = 20) => {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      per_page: perPage.toString()
+    });
+    
+    const response = await api.get(`/dealers/pending-approvals?${params}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pending approvals:', error);
+    throw error;
+  }
+};
+
+export const approveDealer = async (userId) => {
+  try {
+    const response = await api.post(`/dealers/${userId}/approve`);
+    return response.data;
+  } catch (error) {
+    console.error('Error approving dealer:', error);
+    throw error;
+  }
+};
+
+export const rejectDealer = async (userId) => {
+  try {
+    const response = await api.post(`/dealers/${userId}/reject`);
+    return response.data;
+  } catch (error) {
+    console.error('Error rejecting dealer:', error);
+    throw error;
+  }
+};
+
 // Reverse Bidding API functions
 // Note: These endpoints are under /wp-json/reverse-bid/v1/ namespace
 // We need to construct the full path since baseURL is dealer-portal/v1

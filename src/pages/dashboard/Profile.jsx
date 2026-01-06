@@ -122,6 +122,14 @@ const Profile = () => {
 
     if (!hasValidRole) return { show: false, type: null };
 
+    // Check user status (pending or rejected) - highest priority
+    const userStatus = user.user_status_details?.status;
+    if (userStatus === "pending") {
+      return { show: true, type: "pending" };
+    } else if (userStatus === "rejected") {
+      return { show: true, type: "rejected" };
+    }
+
     // Check account status
     const isAccountInactive = user.user_status_details?.account_status === "inactive";
     const isSubscriptionInactive = user.subscription_status === "inactive";
@@ -453,7 +461,49 @@ const Profile = () => {
             const warningInfo = getWarningInfo();
             if (!warningInfo.show) return null;
 
-            if (warningInfo.type === "account") {
+            if (warningInfo.type === "pending") {
+              return (
+                <motion.div
+                  variants={itemVariants}
+                  className="card p-4 sm:p-6 mb-6 sm:mb-8 border-l-4 border-amber-500 bg-amber-50"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                        Account Under Review
+                      </h3>
+                      <p className="text-amber-700 mb-3">
+                        Your profile is currently under review by our team. You will receive full platform access once the review process is complete. We appreciate your patience during this time.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            } else if (warningInfo.type === "rejected") {
+              return (
+                <motion.div
+                  variants={itemVariants}
+                  className="card p-4 sm:p-6 mb-6 sm:mb-8 border-l-4 border-red-500 bg-red-50"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-red-800 mb-2">
+                        Account Review Unsuccessful
+                      </h3>
+                      <p className="text-red-700 mb-3">
+                        Our team has reviewed your account application, and unfortunately, it did not meet our current platform requirements. If you believe this is an error or have additional information to provide, please contact our support team for further assistance.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            } else if (warningInfo.type === "account") {
               return (
                 <motion.div
                   variants={itemVariants}
