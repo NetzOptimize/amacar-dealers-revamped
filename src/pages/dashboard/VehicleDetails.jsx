@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/Button";
 import CarDetailsView from "@/components/vehicle-details/CarDetailsView";
+import EditInventoryModal from "@/components/inventory/EditInventoryModal";
+import { Edit } from "lucide-react";
 
 const VehicleDetails = () => {
   const { id } = useParams();
@@ -47,6 +49,7 @@ const VehicleDetails = () => {
   const [error, setError] = useState(null);
   const [showMarkSoldModal, setShowMarkSoldModal] = useState(false);
   const [markingSold, setMarkingSold] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [vehicleSource, setVehicleSource] = useState(null); // 'reverse-bid' or 'car-dealer'
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // Track current carousel image
@@ -1007,9 +1010,20 @@ const VehicleDetails = () => {
                 </div>
               )}
               
-              {/* Mark as Sold Button */}
-              {!isSold && !hasActiveBids && (
-                <div className="mt-6 pt-6 border-t border-neutral-200">
+              {/* Edit and Mark as Sold Buttons */}
+              <div className="mt-6 pt-6 border-t border-neutral-200 space-y-3">
+                {/* Edit Button */}
+                <Button
+                  onClick={() => setShowEditModal(true)}
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Incentives & Perks
+                </Button>
+                
+                {/* Mark as Sold Button */}
+                {!isSold && !hasActiveBids && (
                   <Button
                     onClick={() => setShowMarkSoldModal(true)}
                     className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
@@ -1017,8 +1031,8 @@ const VehicleDetails = () => {
                     <Tag className="w-4 h-4 mr-2" />
                     Mark as Sold
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
               
               {isSold && (
                 <div className="mt-6 pt-6 border-t border-neutral-200">
@@ -1143,6 +1157,24 @@ const VehicleDetails = () => {
         </div>
       </div>
       
+      {/* Edit Inventory Modal */}
+      <EditInventoryModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        vehicle={vehicleData}
+        onSuccess={async () => {
+          // Refresh vehicle data after successful update
+          try {
+            const updatedData = await getVehicleDetail(id);
+            if (updatedData && updatedData.success && updatedData.data) {
+              setVehicleData(updatedData.data);
+            }
+          } catch (err) {
+            console.error('Error refreshing vehicle data:', err);
+          }
+        }}
+      />
+
       {/* Mark as Sold Confirmation Modal */}
       <AnimatePresence>
         {showMarkSoldModal && (

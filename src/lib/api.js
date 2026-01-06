@@ -507,6 +507,28 @@ export const getDealerInventory = async (params = {}) => {
   }
 };
 
+// Update inventory item (incentives and perks)
+export const updateInventoryItem = async (vehicleId, data) => {
+  try {
+    const response = await reverseBidApi.patch(`/dealer/inventory/${vehicleId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating inventory item:', error);
+    throw error;
+  }
+};
+
+// Push vehicle to reverse bidding
+export const pushToBidding = async (vehicleId) => {
+  try {
+    const response = await reverseBidApi.post(`/dealer/inventory/${vehicleId}/push-to-bidding`);
+    return response.data;
+  } catch (error) {
+    console.error('Error pushing vehicle to bidding:', error);
+    throw error;
+  }
+};
+
 // Get won sessions (sessions won by the logged-in dealer)
 export const getWonSessions = async (params = {}) => {
   try {

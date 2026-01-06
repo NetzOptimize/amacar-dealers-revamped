@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Eye,
+  Edit,
   Car,
   MoreHorizontal,
   Image as ImageIcon,
@@ -210,36 +211,45 @@ const InventoryContainer = ({
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-        <Table className={`w-full ${isAdminOrSalesManager ? 'min-w-[1300px]' : 'min-w-[1100px]'}`}>
+        <Table className={`w-full ${isAdminOrSalesManager ? 'min-w-[1400px]' : 'min-w-[1200px]'}`}>
           <TableHeader>
             <TableRow className="border-neutral-200 hover:bg-transparent">
-              <TableHead className="text-neutral-600 font-medium w-[10%]">
-                Image
+              <TableHead className="text-neutral-600 font-medium w-[7%]">
+                Photo
               </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[18%]">
+              <TableHead className="text-neutral-600 font-medium w-[9%]">
+                VIN
+              </TableHead>
+              <TableHead className="text-neutral-600 font-medium w-[14%]">
                 Vehicle
               </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[10%]">
-                Price
+              <TableHead className="text-neutral-600 font-medium w-[6%]">
+                Mileage
+              </TableHead>
+              <TableHead className="text-neutral-600 font-medium w-[7%]">
+                Stock #
+              </TableHead>
+              <TableHead className="text-neutral-600 font-medium w-[7%]">
+                MSRP
               </TableHead>
               <TableHead className="text-neutral-600 font-medium w-[8%]">
-                Condition
+                Online Price
               </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[12%]">
-                Location
+              <TableHead className="text-neutral-600 font-medium w-[7%]">
+                Status
+              </TableHead>
+              <TableHead className="text-neutral-600 font-medium w-[6%]">
+                Days
+              </TableHead>
+              <TableHead className="text-neutral-600 font-medium w-[7%]">
+                In Bidding
               </TableHead>
               {isAdminOrSalesManager && (
-                <TableHead className="text-neutral-600 font-medium w-[14%]">
+                <TableHead className="text-neutral-600 font-medium w-[9%]">
                   Dealership
                 </TableHead>
               )}
-              <TableHead className="text-neutral-600 font-medium w-[10%]">
-                Status
-              </TableHead>
-              <TableHead className="text-neutral-600 font-medium w-[12%]">
-                Date Added
-              </TableHead>
-              <TableHead className="text-neutral-600 font-medium text-right w-[10%]">
+              <TableHead className="text-neutral-600 font-medium text-right w-[7%]">
                 Actions
               </TableHead>
             </TableRow>
@@ -247,7 +257,7 @@ const InventoryContainer = ({
           <TableBody>
             {vehicles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdminOrSalesManager ? 9 : 8} className="py-12 text-center">
+                <TableCell colSpan={isAdminOrSalesManager ? 13 : 12} className="py-12 text-center">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -293,9 +303,9 @@ const InventoryContainer = ({
                 >
                   <TableCell className="py-4.5">
                     <div className="flex items-center justify-center">
-                      {primaryImage ? (
+                      {(vehicle.photo || primaryImage) ? (
                         <img
-                          src={primaryImage}
+                          src={vehicle.photo || primaryImage}
                           alt={vehicleTitle}
                           className="w-20 h-16 object-cover rounded-lg border border-neutral-200"
                           onError={(e) => {
@@ -305,33 +315,53 @@ const InventoryContainer = ({
                         />
                       ) : null}
                       <div 
-                        className={`w-20 h-16 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center ${primaryImage ? 'hidden' : ''}`}
+                        className={`w-20 h-16 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center ${(vehicle.photo || primaryImage) ? 'hidden' : ''}`}
                       >
                         <ImageIcon className="w-6 h-6 text-neutral-400" />
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4.5">
-                    <div>
-                      <div className="font-semibold text-neutral-900 text-sm">
-                        {vehicleTitle}
+                  <TableCell className="py-3">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="text-xs text-neutral-700 font-mono">
+                        {vehicle.vin || 'N/A'}
                       </div>
-                      {vehicle.vin && (
-                        <div className="text-xs text-neutral-500 mt-0.5">
-                          VIN: {vehicle.vin}
+                      {vehicle.new_used && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium w-fit ${
+                          vehicle.new_used === 'N' || vehicle.new_used === 'New'
+                            ? 'bg-green-100 text-green-800 border border-green-200'
+                            : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
+                          {vehicle.new_used === 'N' || vehicle.new_used === 'New' ? 'New' : 'Used'}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-semibold text-neutral-900 leading-tight">
+                        {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'N/A'}
+                      </div>
+                      {vehicle.trim && (
+                        <div className="text-xs text-neutral-500">
+                          {vehicle.trim}
                         </div>
                       )}
-                      {vehicle.is_reverse_biddable === 'true' || vehicle.is_reverse_biddable === true ? (
-                        <div className="flex items-center gap-1 mt-1">
-                          <CheckCircle className="w-3 h-3 text-green-600" />
-                          <span className="text-xs text-green-600 font-medium">Reverse Biddable</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 mt-1">
-                          <XCircle className="w-3 h-3 text-neutral-400" />
-                          <span className="text-xs text-neutral-400">Not Biddable</span>
-                        </div>
-                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="text-xs text-neutral-600">
+                      {vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="text-xs text-neutral-600 font-mono">
+                      {vehicle.stock_number || 'N/A'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="text-sm text-neutral-700">
+                      {vehicle.msrp ? formatPrice(vehicle.msrp) : 'N/A'}
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
@@ -340,35 +370,32 @@ const InventoryContainer = ({
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getInventoryStatusColor(vehicle.status || vehicle.inventory_status)}`}>
+                      {(vehicle.status || vehicle.inventory_status || 'active').replace('_', ' ')}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3">
                     <div className="text-xs text-neutral-600">
-                      {formatNewUsed(vehicle.new_used)}
+                      {vehicle.days_in_inventory || 0} days
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="flex items-center gap-1 text-xs text-neutral-600">
-                      <MapPin className="w-3 h-3" />
-                      <span className="truncate max-w-[120px]" title={formatLocation(vehicle)}>
-                        {formatLocation(vehicle)}
-                      </span>
-                    </div>
+                    {vehicle.in_reverse_bidding ? (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4 text-orange-600" />
+                        <span className="text-xs text-orange-600 font-medium">
+                          {vehicle.active_bids_count || 0} bid{vehicle.active_bids_count !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <XCircle className="w-4 h-4 text-neutral-400" />
+                        <span className="text-xs text-neutral-400">No</span>
+                      </div>
+                    )}
                   </TableCell>
                   {isAdminOrSalesManager && (
                     <TableCell className="py-3">
-                      {(() => {
-                        // Debug logging
-                        if (index === 0) {
-                          console.log('=== Rendering Dealership Cell ===');
-                          console.log('Vehicle ID:', vehicle.id);
-                          console.log('dealer_info exists:', !!vehicle.dealer_info);
-                          console.log('dealer_info value:', vehicle.dealer_info);
-                          if (vehicle.dealer_info) {
-                            console.log('dealership_name:', vehicle.dealer_info.dealership_name);
-                            console.log('dealer_name:', vehicle.dealer_info.dealer_name);
-                            console.log('dealer_email:', vehicle.dealer_info.dealer_email);
-                          }
-                        }
-                        return null;
-                      })()}
                       {vehicle.dealer_info ? (
                         <div className="text-xs text-neutral-700 space-y-1">
                           {vehicle.dealer_info.dealership_name ? (
@@ -398,17 +425,6 @@ const InventoryContainer = ({
                       )}
                     </TableCell>
                   )}
-                  <TableCell className="py-3">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getInventoryStatusColor(vehicle.inventory_status)}`}>
-                      {vehicle.inventory_status || 'active'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <div className="text-xs text-neutral-600 space-y-0.5">
-                      <div>{formatDateOnly(vehicle.post_date)}</div>
-                      <div className="text-neutral-500">{formatTimeOnly(vehicle.post_date)}</div>
-                    </div>
-                  </TableCell>
                   <TableCell className="py-3 text-right">
                     <div className="flex justify-end items-center">
                       <DropdownMenu>
@@ -433,6 +449,13 @@ const InventoryContainer = ({
                           >
                             <Eye className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
                             <span>View Details</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleViewVehicle(vehicle.id)}
+                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none transition-all duration-200 group"
+                          >
+                            <Edit className="w-4 h-4 text-neutral-500 group-hover:text-orange-600 group-focus:text-orange-600 transition-colors duration-200" />
+                            <span>Edit Vehicle</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
