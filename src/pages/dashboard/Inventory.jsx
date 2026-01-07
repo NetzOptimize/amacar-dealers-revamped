@@ -82,7 +82,14 @@ const Inventory = () => {
       const response = await getDealerInventory(params);
 
       if (response.success) {
-        setVehicles(response.data.data || []);
+        const vehiclesData = response.data.data || [];
+        // Debug: Log first vehicle to check for has_incentives and has_perks
+        if (vehiclesData.length > 0) {
+          console.log('First vehicle from API:', vehiclesData[0]);
+          console.log('has_incentives:', vehiclesData[0].has_incentives);
+          console.log('has_perks:', vehiclesData[0].has_perks);
+        }
+        setVehicles(vehiclesData);
         setPagination(response.data.pagination || {
           current_page: page,
           per_page: perPage,
@@ -248,7 +255,10 @@ const Inventory = () => {
       owned_by: vehicle.owned_by || '',
       dealer_info: vehicle.dealer_info || null, // Include dealer_info for admin/sales_manager
       incentives: vehicle.incentives || null,
-      perks: vehicle.perks || []
+      perks: vehicle.perks || [],
+      // Convert to boolean - handle both boolean and string values
+      has_incentives: vehicle.has_incentives === true || vehicle.has_incentives === 'true' || vehicle.has_incentives === 'yes' || vehicle.has_incentives === 1 || vehicle.has_incentives === '1',
+      has_perks: vehicle.has_perks === true || vehicle.has_perks === 'true' || vehicle.has_perks === 'yes' || vehicle.has_perks === 1 || vehicle.has_perks === '1'
     }));
   }, [vehicles]);
 

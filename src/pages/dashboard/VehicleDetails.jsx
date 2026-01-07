@@ -21,6 +21,8 @@ import {
   Building2,
   Phone,
   Mail,
+  History,
+  Edit3,
 } from "lucide-react";
 import { getVehicleDetail, markVehicleSold } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -332,10 +334,26 @@ const VehicleDetails = () => {
   const formatDate = (dateString) => {
     if (!dateString) return null;
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      // Show relative time for recent updates
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+      // For older dates, show formatted date
+      return date.toLocaleDateString("en-US", {
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateString;
@@ -1052,6 +1070,184 @@ const VehicleDetails = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* Update Tracking Card - Shows when data was last updated */}
+            {(vehicleData?.dealer_updated_at || 
+              vehicleData?.perks_updated_at || 
+              vehicleData?.incentives?.updated_at) && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 }}
+                className="bg-white rounded-xl border border-neutral-200 p-6 shadow-lg"
+              >
+                <h3 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
+                  <History className="w-5 h-5 text-primary-600" />
+                  Update History
+                </h3>
+                <div className="space-y-3">
+                  {/* Combined Update Entry - Shows all updates from the same timestamp */}
+                  {vehicleData?.dealer_updated_at && (() => {
+                    const updatedFields = (() => {
+                      try {
+                        return typeof vehicleData.dealer_updated_fields === 'string' 
+                          ? JSON.parse(vehicleData.dealer_updated_fields || '[]')
+                          : (vehicleData.dealer_updated_fields || []);
+                      } catch (e) {
+                        return [];
+                      }
+                    })();
+
+                    const hasIncentives = updatedFields.includes('loyalty') || 
+                                         updatedFields.includes('manufacturer') || 
+                                         updatedFields.includes('conquest') || 
+                                         updatedFields.includes('customer_cash') || 
+                                         updatedFields.includes('manual_rebate');
+                    const hasPerks = updatedFields.includes('perks');
+                    const hasOtherFields = updatedFields.some(f => 
+                      !['loyalty', 'manufacturer', 'conquest', 'customer_cash', 'manual_rebate', 'perks'].includes(f)
+                    );
+
+                    return (
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-neutral-50 to-neutral-100/50 border border-neutral-200">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                            <Edit3 className="w-5 h-5 text-primary-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-sm font-semibold text-neutral-900">
+                                Last Updated
+                              </div>
+                              <div className="text-xs text-neutral-500 flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                <span>{formatDate(vehicleData.dealer_updated_at)}</span>
+                              </div>
+                            </div>
+                            {vehicleData?.dealer_updated_by && (
+                              <div className="text-xs text-neutral-500 mb-3">
+                                Updated by User ID: {vehicleData.dealer_updated_by}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Incentives Section */}
+                        {hasIncentives && vehicleData?.incentives && (
+                          <div className="mb-3 pb-3 border-b border-neutral-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <DollarSign className="w-4 h-4 text-green-600" />
+                              <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                                Incentives
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {vehicleData.incentives.loyalty > 0 && (
+                                <div className="flex justify-between items-center p-2 rounded bg-green-50/50 border border-green-100">
+                                  <span className="text-neutral-600">Loyalty:</span>
+                                  <span className="font-semibold text-green-700">
+                                    ${vehicleData.incentives.loyalty.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              {vehicleData.incentives.manufacturer > 0 && (
+                                <div className="flex justify-between items-center p-2 rounded bg-green-50/50 border border-green-100">
+                                  <span className="text-neutral-600">Manufacturer:</span>
+                                  <span className="font-semibold text-green-700">
+                                    ${vehicleData.incentives.manufacturer.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              {vehicleData.incentives.conquest > 0 && (
+                                <div className="flex justify-between items-center p-2 rounded bg-green-50/50 border border-green-100">
+                                  <span className="text-neutral-600">Conquest:</span>
+                                  <span className="font-semibold text-green-700">
+                                    ${vehicleData.incentives.conquest.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              {vehicleData.incentives.customer_cash > 0 && (
+                                <div className="flex justify-between items-center p-2 rounded bg-green-50/50 border border-green-100">
+                                  <span className="text-neutral-600">Customer Cash:</span>
+                                  <span className="font-semibold text-green-700">
+                                    ${vehicleData.incentives.customer_cash.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              {vehicleData.incentives.manual_rebate > 0 && (
+                                <div className="flex justify-between items-center p-2 rounded bg-green-50/50 border border-green-100">
+                                  <span className="text-neutral-600">Manual Rebate:</span>
+                                  <span className="font-semibold text-green-700">
+                                    ${vehicleData.incentives.manual_rebate.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Perks Section */}
+                        {hasPerks && vehicleData?.perks && vehicleData.perks.length > 0 && (
+                          <div className="mb-3 pb-3 border-b border-neutral-200 last:border-0 last:pb-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Tag className="w-4 h-4 text-orange-600" />
+                              <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                                Perks
+                              </span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {vehicleData.perks.map((perk, idx) => (
+                                <div 
+                                  key={idx}
+                                  className="flex items-start justify-between p-2 rounded bg-orange-50/50 border border-orange-100"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-medium text-neutral-900">
+                                      {perk.name}
+                                    </div>
+                                    {perk.description && (
+                                      <div className="text-xs text-neutral-500 mt-0.5">
+                                        {perk.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {perk.value > 0 && (
+                                    <div className="text-xs font-semibold text-orange-700 ml-2">
+                                      ${perk.value.toLocaleString()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Other Fields */}
+                        {hasOtherFields && (
+                          <div>
+                            <div className="text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                              Other Updates
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {updatedFields
+                                .filter(f => !['loyalty', 'manufacturer', 'conquest', 'customer_cash', 'manual_rebate', 'perks'].includes(f))
+                                .map((field, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-neutral-100 text-neutral-700 border border-neutral-200"
+                                  >
+                                    {String(field).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </motion.div>
+            )}
 
             {/* Dealer Info Card - Only shown for admin/sales_manager */}
             {vehicleData?.dealer_info && isAdminOrSalesManager && (

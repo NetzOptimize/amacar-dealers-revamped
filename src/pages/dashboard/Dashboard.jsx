@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Gavel, TrendingDown } from "lucide-react";
 import DashboardStats from "@/components/dashboard/DashboardStats/DashboardStats";
 import RecentVehiclesSection from "../../components/dashboard/RecentVehiclesSection/RecentVehiclesSection";
 import RecentCustomers from "@/components/dashboard/RecentCustomers/RecentCustomers";
@@ -102,25 +103,28 @@ const Dashboard = () => {
           </motion.p>
         </motion.div>
 
-        {/* Modern Segmented Tab Control */}
+        {/* Modern SaaS-Style Tab Control - Pill Container Design */}
         <motion.div 
           className="mb-8"
           variants={headerVariants}
         >
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <div className="inline-flex bg-white rounded-lg p-1 shadow-sm border border-neutral-200">
-              <TabsList className="bg-transparent p-0 h-auto w-auto inline-flex gap-0">
+            {/* Pill-style container with light gray background */}
+            <div className="w-full bg-neutral-100 rounded-xl p-1.5 shadow-sm">
+              <TabsList className="bg-transparent p-0 h-auto w-full grid grid-cols-2 gap-1.5">
                 <TabsTrigger 
                   value="active-bidding" 
-                  className="relative px-5 py-2 text-sm font-medium text-neutral-600 rounded-md transition-all duration-200 data-[state=active]:bg-primary-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:text-neutral-900 hover:bg-neutral-50/50 data-[state=active]:hover:bg-primary-600 data-[state=active]:hover:text-white"
+                  className="relative flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium text-neutral-600 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:font-semibold data-[state=active]:shadow-sm hover:text-neutral-800 hover:bg-white/50 data-[state=active]:hover:bg-white data-[state=active]:hover:shadow-md"
                 >
-                  Active Bidding
+                  <Gavel className="w-4 h-4" />
+                  <span>Live Auction</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="reverse-bidding"
-                  className="relative px-5 py-2 text-sm font-medium text-neutral-600 rounded-md transition-all duration-200 data-[state=active]:bg-primary-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:text-neutral-900 hover:bg-neutral-50/50 data-[state=active]:hover:bg-primary-600 data-[state=active]:hover:text-white"
+                  className="relative flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium text-neutral-600 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:font-semibold data-[state=active]:shadow-sm hover:text-neutral-800 hover:bg-white/50 data-[state=active]:hover:bg-white data-[state=active]:hover:shadow-md"
                 >
-                  Reverse Bidding
+                  <TrendingDown className="w-4 h-4" />
+                  <span>Reverse Bidding</span>
                 </TabsTrigger>
               </TabsList>
             </div>

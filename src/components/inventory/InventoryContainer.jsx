@@ -9,6 +9,8 @@ import {
   CheckCircle,
   XCircle,
   PackageSearch,
+  DollarSign,
+  Tag,
 } from "lucide-react";
 import {
   Table,
@@ -338,7 +340,7 @@ const InventoryContainer = ({
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="space-y-0.5">
+                    <div className="space-y-1.5">
                       <div className="text-sm font-semibold text-neutral-900 leading-tight">
                         {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'N/A'}
                       </div>
@@ -347,6 +349,21 @@ const InventoryContainer = ({
                           {vehicle.trim}
                         </div>
                       )}
+                      {/* Incentives and Perks Indicators */}
+                      <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                        {vehicle.has_incentives && (
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-200">
+                            <DollarSign className="w-3 h-3 text-green-600" />
+                            <span className="text-xs font-medium text-green-700">Incentives</span>
+                          </div>
+                        )}
+                        {vehicle.has_perks && (
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200">
+                            <Tag className="w-3 h-3 text-orange-600" />
+                            <span className="text-xs font-medium text-orange-700">Perks</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
@@ -546,6 +563,21 @@ const InventoryContainer = ({
                         VIN: {vehicle.vin}
                       </div>
                     )}
+                    {/* Incentives and Perks Indicators */}
+                    <div className="flex items-center gap-2 flex-wrap mt-2">
+                      {vehicle.has_incentives && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-200">
+                          <DollarSign className="w-3 h-3 text-green-600" />
+                          <span className="text-xs font-medium text-green-700">Incentives</span>
+                        </div>
+                      )}
+                      {vehicle.has_perks && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200">
+                          <Tag className="w-3 h-3 text-orange-600" />
+                          <span className="text-xs font-medium text-orange-700">Perks</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Vehicle Details */}
