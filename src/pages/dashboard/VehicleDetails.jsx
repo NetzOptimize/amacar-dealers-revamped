@@ -1126,7 +1126,7 @@ const VehicleDetails = () => {
                             </div>
                             {vehicleData?.dealer_updated_by && (
                               <div className="text-xs text-neutral-500 mb-3">
-                                Updated by User ID: {vehicleData.dealer_updated_by}
+                                Updated by: {vehicleData.perks_updated_by}
                               </div>
                             )}
                           </div>
