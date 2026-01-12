@@ -75,6 +75,15 @@ const VehicleDetails = () => {
         const sourceFromState = routerLocation.state?.source || null;
         const response = await getVehicleDetail(id, sourceFromState);
 
+        // Check if response indicates failure
+        if (response && response.success === false) {
+          // Extract error message from response
+          const errorMessage = response.message || response.error || "Failed to fetch vehicle details";
+          setError(errorMessage);
+          setLoading(false);
+          return;
+        }
+
         if (response && response.success) {
           // Store the source to determine which UI to render
           setVehicleSource(response.source || 'reverse-bid');
@@ -89,15 +98,18 @@ const VehicleDetails = () => {
             setError("Invalid response structure");
           }
         } else {
+          // Handle case where response exists but success is undefined/null
           setError(response?.message || "Failed to fetch vehicle details");
         }
       } catch (err) {
         console.error("Error fetching vehicle details:", err);
-        setError(
+        // Handle different error formats
+        const errorMessage = 
           err.response?.data?.message ||
-            err.message ||
-            "Failed to fetch vehicle details"
-        );
+          err.response?.data?.error ||
+          err.message ||
+          "Failed to fetch vehicle details";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -383,14 +395,36 @@ const VehicleDetails = () => {
   }
 
   if (error || !vehicleData) {
+    // Determine error title and icon based on error message
+    const isPermissionError = error?.toLowerCase().includes('permission') || 
+                             error?.toLowerCase().includes('access denied') ||
+                             error?.toLowerCase().includes('do not have permission');
+    const isNotFoundError = error?.toLowerCase().includes('not found') || 
+                           error?.toLowerCase().includes('does not exist');
+    
+    const errorTitle = isPermissionError 
+      ? "Access Denied" 
+      : isNotFoundError 
+      ? "Vehicle Not Found" 
+      : error 
+      ? "Error Loading Vehicle Details" 
+      : "Vehicle Not Found";
+    
+    const errorIconColor = isPermissionError ? "text-amber-500" : "text-red-500";
+    const errorBgColor = isPermissionError ? "bg-amber-100" : "bg-red-100";
+
     return (
       <div className="min-h-screen bg-gray-50 pt-10 md:pt-24 px-4 md:px-6 pb-12 flex items-center justify-center">
         <div className="text-center max-w-md">
-          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Car className="w-12 h-12 text-red-500" />
+          <div className={`w-24 h-24 ${errorBgColor} rounded-full flex items-center justify-center mx-auto mb-6`}>
+            {isPermissionError ? (
+              <AlertCircle className={`w-12 h-12 ${errorIconColor}`} />
+            ) : (
+              <Car className={`w-12 h-12 ${errorIconColor}`} />
+            )}
           </div>
           <h3 className="text-xl font-semibold text-neutral-800 mb-2">
-            {error ? "Error Loading Vehicle Details" : "Vehicle Not Found"}
+            {errorTitle}
           </h3>
           <p className="text-neutral-600 mb-6">{error || "No vehicle data available"}</p>
           <button

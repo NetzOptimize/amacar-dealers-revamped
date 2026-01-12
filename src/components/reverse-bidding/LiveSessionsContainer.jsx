@@ -114,6 +114,36 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
   const [bidDialogOpen, setBidDialogOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
 
+  // Add blinking animation styles for "Losing" badge and info message
+  useEffect(() => {
+    const styleId = 'losing-badge-blink-animation';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes losing-badge-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        .losing-badge-blink {
+          animation: losing-badge-blink 1.5s ease-in-out infinite;
+        }
+        @keyframes info-message-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .info-message-blink {
+          animation: info-message-blink 2s ease-in-out infinite;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      // Cleanup: remove style on unmount if this is the last instance
+      // (In practice, we might want to keep it for other instances)
+    };
+  }, []);
+
   // Handle view customer
   const handleViewCustomer = useCallback((customerId, customerName = "") => {
     setSelectedCustomerId(customerId);
@@ -353,6 +383,8 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
                   className={`text-xs px-2 py-0.5 w-fit flex items-center gap-1 ${
                     bidStatus === 'winning' 
                       ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100' 
+                      : bidStatus === 'losing'
+                      ? 'losing-badge-blink'
                       : ''
                   }`}
                 >
@@ -758,6 +790,14 @@ const LiveSessionsContainer = ({ sessions = [], hideMyBids = false, hideTimeLeft
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Info Message */}
+      <div className="mt-4 flex items-center gap-2 ">
+        <span className="w-2 h-2 bg-red-500 rounded-full info-message-blink"></span>
+        <p className="text-xs text-red-500 info-message-blink">
+          Customers are looking for multiple cars at multiple dealerships
+        </p>
       </div>
 
       {/* Customer Details Modal */}

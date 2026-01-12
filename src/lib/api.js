@@ -588,9 +588,17 @@ const getVehicleDetailFromReverseBid = async (vehicleId) => {
         isDealerVehicle: true
       };
     }
+    // Return the response data even if success is false (preserves error messages)
     return response.data;
   } catch (error) {
-    // Return null if vehicle not found or unauthorized (will try car-dealer API)
+    // If error response has data with a message, preserve it
+    if (error.response?.data && error.response.data.message) {
+      return {
+        success: false,
+        message: error.response.data.message
+      };
+    }
+    // Return null if vehicle not found or unauthorized (will try car-dealer API as fallback)
     if (error.response?.status === 403 || error.response?.status === 404) {
       return null;
     }
@@ -713,6 +721,13 @@ export const getVehicleDetail = async (vehicleId, source = null) => {
       if (carDealerResponse && carDealerResponse.success) {
         return carDealerResponse;
       }
+      // If car-dealer fails, preserve the error message from API if available
+      if (carDealerResponse && carDealerResponse.success === false) {
+        return {
+          success: false,
+          message: carDealerResponse.message || 'Vehicle not found in car-dealer API'
+        };
+      }
       // If car-dealer fails, return error (don't fallback to reverse-bid)
       return {
         success: false,
@@ -724,6 +739,13 @@ export const getVehicleDetail = async (vehicleId, source = null) => {
       const reverseBidResponse = await getVehicleDetailFromReverseBid(vehicleId);
       if (reverseBidResponse && reverseBidResponse.success) {
         return reverseBidResponse;
+      }
+      // If reverse-bid fails, preserve the error message from API if available
+      if (reverseBidResponse && reverseBidResponse.success === false) {
+        return {
+          success: false,
+          message: reverseBidResponse.message || 'Vehicle not found in reverse-bid API'
+        };
       }
       // If reverse-bid fails, return error (don't fallback to car-dealer)
       return {
@@ -738,9 +760,19 @@ export const getVehicleDetail = async (vehicleId, source = null) => {
       return reverseBidResponse;
     }
     
+    // If reverse-bid API returns an error with a message, preserve it
+    if (reverseBidResponse && reverseBidResponse.success === false && reverseBidResponse.message) {
+      return reverseBidResponse;
+    }
+    
     // If reverse-bid API doesn't return the vehicle, try car-dealer API (for customer-owned vehicles from auctions)
     const carDealerResponse = await getVehicleDetailFromCarDealer(vehicleId);
     if (carDealerResponse && carDealerResponse.success) {
+      return carDealerResponse;
+    }
+    
+    // If car-dealer API returns an error with a message, preserve it
+    if (carDealerResponse && carDealerResponse.success === false && carDealerResponse.message) {
       return carDealerResponse;
     }
     
